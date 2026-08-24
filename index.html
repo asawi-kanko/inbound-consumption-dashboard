@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>インバウンド消費動向分析</title>
+  <link rel="stylesheet" href="./assets/css/style.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <div class="title-block">
+        <p>Inbound consumption dashboard</p>
+        <h1>インバウンド消費動向分析</h1>
+      </div>
+      <div class="header-meta">
+        <span class="pill" id="dataStatus">データ読込中</span>
+        <span class="pill" id="latestPeriod">最新期間: -</span>
+      </div>
+    </header>
+
+    <section class="panel filters" id="filters">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Analysis filters</p>
+          <h2>分析条件</h2>
+        </div>
+        <button class="btn soft" type="button" id="clearFilters">選択項目をすべてクリア</button>
+      </div>
+      <div class="filter-grid">
+        <div class="control wide">
+          <span class="label">調査期間</span>
+          <div class="multi-select" id="periodSelect"></div>
+        </div>
+        <div class="control wide">
+          <span class="label">表示指標</span>
+          <div class="multi-select" id="metricSelect"></div>
+        </div>
+        <div class="control wide">
+          <span class="label">表示区分（安定性）</span>
+          <div class="multi-select" id="stabilitySelect"></div>
+        </div>
+        <div class="control wide">
+          <span class="label">比較する都道府県</span>
+          <div class="multi-select" id="prefSelect"></div>
+          <div class="panel-actions" style="border:0;margin:8px 0 0;padding:0">
+            <button class="btn" type="button" id="allPrefs">すべて</button>
+            <button class="btn" type="button" id="topPrefs">現在の指標上位10県</button>
+          </div>
+        </div>
+        <div class="control wide">
+          <span class="label">国籍・地域</span>
+          <div class="multi-select" id="natSelect"></div>
+          <div class="nat-chips" id="natQuick"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="kpi-grid" id="kpis"></section>
+
+    <section class="analysis-panel" id="analysisPanel">
+      <div class="grid">
+        <article class="panel card wide">
+          <div class="panel-head">
+            <div><p class="eyebrow">Prefecture ranking</p><h3>都道府県比較ボード</h3></div>
+            <span class="pill">現在の指標でランキング表示</span>
+          </div>
+          <div class="table-wrap"><table id="prefCompareTable"></table></div>
+        </article>
+
+        <article class="panel card wide">
+          <div class="panel-head">
+            <div><p class="eyebrow">Nationality ranking</p><h3>選択都道府県の国籍・地域別ランキング</h3></div>
+            <label class="label focus-label">都道府県 <select id="focusPref"></select></label>
+          </div>
+          <div class="table-wrap"><table id="prefNatRanking"></table></div>
+        </article>
+
+        <article class="panel card wide">
+          <div class="panel-head"><div><p class="eyebrow">Country × Prefecture</p><h3>国・地域 × 都道府県ヒートマップ</h3></div></div>
+          <div class="heatmap"><table id="heatmapTable"></table></div>
+        </article>
+
+        <article class="panel card wide">
+          <div class="panel-head"><div><p class="eyebrow">Expense composition</p><h3>選択都道府県の国籍・地域別 費目構成</h3></div></div>
+          <div class="composition-table"><table class="component-grid-table" id="prefNatComposition"></table></div>
+        </article>
+
+        <article class="panel card wide">
+          <div class="panel-head"><div><p class="eyebrow">Expense composition</p><h3>選択国籍・地域の都道府県別 費目構成</h3></div></div>
+          <div class="composition-table"><table class="component-grid-table" id="countryPrefComposition"></table></div>
+        </article>
+
+        <article class="panel card wide">
+          <div class="panel-head"><div><p class="eyebrow">Market position</p><h3>重点市場ポジション</h3></div></div>
+          <div id="marketQuadrants" class="quadrants"></div>
+        </article>
+
+        <article class="panel card wide">
+          <div class="panel-head"><div><p class="eyebrow">Trend</p><h3>都道府県別 四半期推移</h3></div></div>
+          <div id="prefTrend"></div>
+        </article>
+
+        <article class="panel card wide">
+          <div class="panel-head"><div><p class="eyebrow">Trend</p><h3>国籍・地域別 四半期推移</h3></div></div>
+          <div id="countryTrend"></div>
+        </article>
+
+        <article class="panel card">
+          <div class="panel-head"><div><p class="eyebrow">Stability</p><h3>表示区分（安定性）</h3></div></div>
+          <div id="prefReliability"></div>
+        </article>
+
+        <article class="panel card">
+          <div class="panel-head"><div><p class="eyebrow">Method note</p><h3>表示ルール</h3></div></div>
+          <div id="methodNote"></div>
+        </article>
+      </div>
+    </section>
+
+    <p class="footer-note">数値はJSON作成ツールで生成したB1地域調査の都道府県×国籍・地域集計データを参照しています。表示区分は支出サンプル数、有効サンプル数、近似RSE、外れ値影響、パッケージ按分割合を組み合わせた安定性の目安です。</p>
+  </main>
+
+  <div class="modal-backdrop" id="localDataModal">
+    <div class="modal">
+      <h3>JSONデータを読み込めませんでした</h3>
+      <p>GitHub PagesなどのHTTP環境では <code>dashboard/data/manifest.json</code> を自動で読み込みます。PC上で直接開いている場合は、下のボタンからJSON作成ツールで作成した <code>manifest.json</code> と各四半期JSONをまとめて選択してください。</p>
+      <div class="panel-actions" style="border:0;margin:16px 0 0;padding:0">
+        <button class="btn primary" id="chooseJsonFiles" type="button">JSONファイルを選択</button>
+        <input type="file" id="jsonInput" accept=".json,application/json" multiple hidden />
+      </div>
+    </div>
+  </div>
+
+  <script src="./assets/js/dashboard.js"></script>
+</body>
+</html>
