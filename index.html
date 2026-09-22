@@ -4,7 +4,173 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>インバウンド消費動向分析</title>
-  <link rel="stylesheet" href="./assets/css/style.css" />
+  <style>
+:root {
+  --bg: #f4f8fb;
+  --card: #ffffff;
+  --ink: #102033;
+  --muted: #71849b;
+  --line: #d9e5ef;
+  --soft: #eef7f8;
+  --teal: #27c8bd;
+  --teal-dark: #0a958f;
+  --blue: #6ea8ff;
+  --gold: #e9c56a;
+  --gold-soft: #fff8df;
+  --orange: #f3a84b;
+  --shadow: 0 16px 35px rgba(24, 46, 69, .10);
+  --radius: 22px;
+  --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 80% -20%, rgba(233,197,106,.26), transparent 38%),
+    radial-gradient(circle at 5% 0%, rgba(39,200,189,.14), transparent 32%),
+    linear-gradient(180deg, #f7fbfd 0%, var(--bg) 100%);
+  line-height: 1.6;
+}
+button, select, input { font: inherit; }
+button { cursor: pointer; }
+.app { width: min(1520px, calc(100% - 48px)); margin: 24px auto 56px; }
+.header {
+  display: flex; justify-content: space-between; align-items: center; gap: 18px;
+  padding: 24px 28px; background: rgba(255,255,255,.88); border: 1px solid var(--line);
+  border-radius: 28px; box-shadow: var(--shadow); backdrop-filter: blur(12px);
+}
+.title-block p { margin: 0 0 4px; color: var(--muted); font-size: 12px; letter-spacing: .08em; font-weight: 800; }
+.title-block h1 { margin: 0; font-size: clamp(26px, 3.2vw, 44px); letter-spacing: -.04em; line-height: 1.15; }
+.header-meta { display:flex; gap:10px; flex-wrap: wrap; align-items:center; justify-content:flex-end; color: var(--muted); font-size: 13px; }
+.pill { display:inline-flex; align-items:center; gap:7px; padding: 9px 12px; border:1px solid var(--line); border-radius:999px; background:#fff; font-weight:700; }
+.panel {
+  background: rgba(255,255,255,.92); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 9px 26px rgba(24,46,69,.07); padding: 22px;
+}
+.filters { margin-top: 18px; }
+.panel-head { display:flex; justify-content:space-between; gap:18px; align-items:flex-start; margin-bottom:18px; }
+.eyebrow { color: var(--teal-dark); font-size: 12px; line-height:1; letter-spacing:.08em; font-weight: 900; margin: 0 0 8px; text-transform: uppercase; }
+h2,h3 { margin:0; line-height:1.35; letter-spacing:-.02em; }
+.filter-grid { display:grid; grid-template-columns: repeat(12, 1fr); gap: 14px; align-items:start; }
+.control { grid-column: span 3; min-width:0; }
+.control.wide { grid-column: span 6; }
+.control.full { grid-column: 1 / -1; }
+.label { display:block; color: var(--muted); font-weight:800; font-size: 13px; margin-bottom:8px; }
+.multi-select { position: relative; }
+.multi-button, .select-button {
+  width:100%; display:flex; justify-content:space-between; align-items:center; gap:10px;
+  background:#fff; color:var(--ink); border:1px solid var(--line); border-radius: 15px; padding: 13px 14px;
+  box-shadow: 0 3px 10px rgba(24,46,69,.04); text-align:left; font-weight:800;
+}
+.multi-button small { color:var(--muted); font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.multi-panel {
+  position:absolute; z-index:25; top:calc(100% + 8px); left:0; right:0; max-height: 360px; overflow:auto;
+  background:#fff; border:1px solid var(--line); border-radius: 18px; box-shadow: 0 18px 40px rgba(24,46,69,.16); padding: 12px;
+  display:none;
+}
+.multi-select.is-open .multi-panel { display:block; }
+.option-row { display:flex; align-items:center; gap:10px; padding: 8px 9px; border-radius: 12px; color:#203349; }
+.option-row:hover { background: var(--soft); }
+.option-row input { accent-color: var(--teal); }
+.panel-actions { display:flex; gap:8px; flex-wrap:wrap; padding-bottom:8px; border-bottom:1px solid var(--line); margin-bottom:8px; }
+.btn {
+  border:1px solid var(--line); border-radius: 999px; padding: 9px 13px; background:#fff; color:#31506c; font-weight:900;
+  box-shadow: 0 3px 10px rgba(24,46,69,.04);
+}
+.btn.primary { background: linear-gradient(135deg, var(--teal), #63d7ee); color:#fff; border-color: transparent; }
+.btn.gold { background: linear-gradient(135deg, var(--gold), #ffe5a1); color:#3a2c10; border-color: transparent; }
+.btn.soft { background: #eef5f9; }
+.btn:hover { transform: translateY(-1px); }
+.nat-chips { display:flex; flex-wrap:wrap; gap:8px; }
+.chip { padding: 9px 12px; border-radius:999px; border:1px solid var(--line); background:#fff; color:#31465e; font-weight:900; }
+.chip.is-active { background: var(--teal); color:#fff; border-color: var(--teal); }
+.tabs { display:flex; gap: 10px; margin-top: 18px; }
+.tab { flex: 1; border:1px solid var(--line); border-radius: 17px; background:#fff; padding: 15px 16px; font-weight: 900; color:#61768d; box-shadow:0 5px 14px rgba(24,46,69,.05); }
+.tab.is-active { color:#fff; background: linear-gradient(135deg, var(--teal), #55cfe7); border-color: transparent; }
+.kpi-grid { display:grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin: 18px 0; }
+.kpi { min-height: 120px; position:relative; overflow:hidden; }
+.kpi::after { content:""; position:absolute; width:92px; height:92px; border-radius:50%; right:-28px; top:-28px; background:rgba(39,200,189,.10); }
+.kpi .label { margin:0 0 16px; }
+.kpi strong { display:block; font-size: clamp(22px, 2.4vw, 34px); color: var(--teal-dark); line-height:1.1; letter-spacing:-.03em; }
+.kpi small { color: var(--muted); font-weight:800; }
+.tab-panel { display:none; }
+.tab-panel.is-active { display:block; }
+.grid { display:grid; grid-template-columns: repeat(12, 1fr); gap: 18px; }
+.card { grid-column: span 6; }
+.card.wide { grid-column: 1 / -1; }
+.card .panel-head { margin-bottom: 14px; }
+.table-wrap { overflow:auto; border-radius: 16px; border:1px solid var(--line); }
+table { width:100%; border-collapse:collapse; min-width:720px; }
+th,td { padding: 12px 13px; text-align:left; border-bottom:1px solid #edf3f7; vertical-align:middle; }
+th { background:#f6f9fb; color:#60768d; font-size:12px; letter-spacing:.04em; }
+tr:last-child td { border-bottom:0; }
+.rank { width: 34px; height:34px; display:inline-grid; place-items:center; border-radius:999px; background:#eef4f8; font-weight:900; color:#688098; }
+.rank.top { background:var(--teal); color:#fff; }
+.bar-cell { display:flex; align-items:center; gap:10px; min-width:220px; }
+.bar-track { height: 12px; flex:1; background:#edf4f7; border-radius:999px; overflow:hidden; }
+.bar-fill { height:100%; min-width:3px; background: linear-gradient(90deg, var(--teal), #86def4); border-radius:999px; }
+.value { font-weight:900; white-space:nowrap; }
+.badge { display:inline-flex; align-items:center; gap:4px; padding:5px 8px; border-radius:999px; font-size:12px; font-weight:900; border:1px solid transparent; }
+.badge.normal { color:#07847e; background:#e9fbf7; border-color:#b9eee5; }
+.badge.caution { color:#8a5f00; background:#fff8df; border-color:#f4d98d; }
+.badge.low { color:#6f7882; background:#edf2f7; border-color:#d9e2eb; }
+.composition-table { overflow:auto; }
+.component-grid-table { min-width: 980px; }
+.component-cell { min-width: 130px; }
+.component-label { display:flex; justify-content:space-between; gap:8px; color:#526b84; font-size:12px; font-weight:900; margin-bottom:4px; }
+.component-track { height:10px; background:#eff5f8; border-radius:999px; overflow:hidden; }
+.component-fill { height:100%; background: linear-gradient(90deg, #78d8d2, #2fbcc2); border-radius:999px; }
+.component-fill.gold { background: linear-gradient(90deg, #ffe0a0, #e9b54d); }
+.component-fill.blue { background: linear-gradient(90deg, #b7d6ff, #69a5ff); }
+.svg-chart { width:100%; height: 320px; border:1px solid var(--line); border-radius: 18px; background: linear-gradient(180deg, #fff, #fbfdfe); }
+.heatmap { overflow:auto; border:1px solid var(--line); border-radius:18px; }
+.heatmap table { min-width: 860px; }
+.heat-cell { text-align:center; font-weight:900; border-radius:10px; min-width:86px; }
+.heat-zero { background:#f1f5f8; color:#9aacbc; }
+.quadrants { display:grid; grid-template-columns: repeat(2, 1fr); gap:14px; }
+.quadrant { min-height: 190px; border:1px solid var(--line); border-radius: 18px; background: linear-gradient(180deg, #fff, #f9fcfd); padding:14px; }
+.quadrant h4 { margin:0 0 10px; display:flex; justify-content:space-between; gap:10px; font-size:15px; }
+.market-list { display:flex; flex-direction:column; gap:8px; }
+.market-card { display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center; padding:10px 12px; border-radius:14px; background:#f4f9fb; border:1px solid #e3edf4; }
+.market-card strong { font-size:14px; }
+.market-card small { color:var(--muted); font-weight:800; }
+.empty { color:var(--muted); padding:20px; text-align:center; border:1px dashed var(--line); border-radius:16px; }
+.footer-note { color:var(--muted); margin: 18px 2px 0; font-size:13px; }
+.modal-backdrop { position:fixed; inset:0; background:rgba(16,32,51,.35); display:none; align-items:center; justify-content:center; z-index:60; padding:22px; }
+.modal-backdrop.is-open { display:flex; }
+.modal { width:min(620px,100%); background:#fff; border-radius:24px; border:1px solid var(--line); box-shadow:0 24px 70px rgba(16,32,51,.25); padding:24px; }
+.modal h3 { margin-bottom:8px; }
+.modal p { color:#536a82; }
+@media (max-width: 1100px) { .control,.control.wide { grid-column: span 6; } .kpi-grid { grid-template-columns:repeat(3,1fr); } .card { grid-column: 1 / -1; } }
+@media (max-width: 720px) { .app { width: min(100% - 24px, 1520px); } .header { align-items:flex-start; flex-direction:column; } .control,.control.wide { grid-column: 1 / -1; } .kpi-grid { grid-template-columns:1fr; } .quadrants { grid-template-columns:1fr; } }
+.analysis-panel { margin-top: 18px; }
+.focus-label { display:flex; align-items:center; gap:8px; margin:0; white-space:nowrap; }
+.focus-label select { min-width: 160px; border:1px solid var(--line); border-radius: 12px; padding: 8px 10px; background:#fff; font-weight:800; color:var(--ink); }
+
+/* v10: stability display classes */
+.badge.stable { color:#057b75; background:#e7fbf7; border-color:#abece4; }
+.badge.reference { color:#4f647a; background:#edf4f8; border-color:#d7e3ec; }
+.badge.suppress { color:#7a4b4b; background:#fff0ef; border-color:#f2c3bd; }
+.stability-detail { color: var(--muted); font-size: 12px; font-weight: 800; margin-top: 4px; }
+.multi-panel { overscroll-behavior: contain; }
+.select-native { width:100%; background:#fff; color:var(--ink); border:1px solid var(--line); border-radius:15px; padding:13px 14px; box-shadow:0 3px 10px rgba(24,46,69,.04); font-weight:800; }
+.metric-detail { display:block; margin-top:4px; color:var(--muted); font-size:12px; font-weight:800; line-height:1.35; }
+.stat-note { color:var(--muted); font-size:12px; font-weight:800; }
+.option-row input { flex: 0 0 auto; }
+.reliability-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; }
+.reliability-card { padding:12px; border:1px solid var(--line); border-radius:16px; background:#f7fbfd; }
+.reliability-card strong { display:block; font-size:20px; color:var(--ink); }
+.reliability-card small { color:var(--muted); font-weight:800; }
+@media (max-width: 900px){ .reliability-grid { grid-template-columns: repeat(2, 1fr); } }
+.badge.stable { color:#07847e; background:#e9fbf7; border-color:#b9eee5; }
+.badge.reference { color:#596879; background:#eef4f8; border-color:#d7e3ec; }
+.badge.suppress { color:#7b4b4b; background:#fff0ef; border-color:#f1c5bf; }
+.note-small { color: var(--muted); font-size: 12px; margin: 10px 2px 0; }
+.multi-panel { overscroll-behavior: contain; }
+
+  </style>
 </head>
 <body>
   <main class="app">
@@ -35,6 +201,10 @@
         <div class="control wide">
           <span class="label">表示指標</span>
           <div class="multi-select" id="metricSelect"></div>
+        </div>
+        <div class="control wide">
+          <span class="label">集計方法</span>
+          <select id="aggMethod" class="select-native"></select>
         </div>
         <div class="control wide">
           <span class="label">表示区分（安定性）</span>
@@ -131,7 +301,575 @@
       </div>
     </div>
   </div>
+  <script>
+const PREFECTURES = [
+  [1,'北海道'],[2,'青森県'],[3,'岩手県'],[4,'宮城県'],[5,'秋田県'],[6,'山形県'],[7,'福島県'],[8,'茨城県'],[9,'栃木県'],[10,'群馬県'],[11,'埼玉県'],[12,'千葉県'],[13,'東京都'],[14,'神奈川県'],[15,'新潟県'],[16,'富山県'],[17,'石川県'],[18,'福井県'],[19,'山梨県'],[20,'長野県'],[21,'岐阜県'],[22,'静岡県'],[23,'愛知県'],[24,'三重県'],[25,'滋賀県'],[26,'京都府'],[27,'大阪府'],[28,'兵庫県'],[29,'奈良県'],[30,'和歌山県'],[31,'鳥取県'],[32,'島根県'],[33,'岡山県'],[34,'広島県'],[35,'山口県'],[36,'徳島県'],[37,'香川県'],[38,'愛媛県'],[39,'高知県'],[40,'福岡県'],[41,'佐賀県'],[42,'長崎県'],[43,'熊本県'],[44,'大分県'],[45,'宮崎県'],[46,'鹿児島県'],[47,'沖縄県']
+];
+const NATIONALITIES = {0:'すべて',1:'韓国',2:'台湾',3:'香港',4:'中国',5:'タイ',6:'シンガポール',7:'マレーシア',8:'インドネシア',9:'フィリピン',10:'ベトナム',11:'インド',12:'英国',13:'ドイツ',14:'フランス',15:'イタリア',16:'スペイン',17:'ロシア',18:'米国',19:'カナダ',20:'オーストラリア',21:'その他'};
+const NAT_GROUPS = [
+  ['all','すべて',[0]],
+  ['asia','アジア',[1,2,3,4,5,6,7,8,9,10,11]],
+  ['east','東アジア',[1,2,3,4]],
+  ['seasia','東南アジア',[5,6,7,8,9,10]],
+  ['europe','欧州',[12,13,14,15,16,17]],
+  ['na','北米',[18,19]],
+  ['west','欧米豪',[12,13,14,15,16,17,18,19,20]],
+  ['long','長距離市場',[12,13,14,15,16,17,18,19,20]],
+];
+const DEFAULT_PREFS = [17,16,18,13,27,26,1,47];
+const DEFAULT_METRICS = [
+  {key:'total_spend_unit_yen',label:'消費単価（パッケージ按分込み）',unit:'円/人'},
+  {key:'direct_spend_unit_yen',label:'直接支出単価',unit:'円/人'},
+  {key:'package_allocated_unit_yen',label:'パッケージ按分単価',unit:'円/人'},
+  {key:'lodging_unit_yen',label:'宿泊費単価',unit:'円/人'},
+  {key:'food_unit_yen',label:'飲食費単価',unit:'円/人'},
+  {key:'intra_transport_unit_yen',label:'域内交通費単価',unit:'円/人'},
+  {key:'entertainment_unit_yen',label:'娯楽等サービス費単価',unit:'円/人'},
+  {key:'shopping_unit_yen',label:'買物代単価',unit:'円/人'},
+  {key:'other_unit_yen',label:'その他単価',unit:'円/人'},
+  {key:'visitor_weighted_index',label:'訪問者ウェイト指数',unit:''},
+  {key:'spend_sample',label:'支出サンプル数',unit:'件'},
+  {key:'avg_nights',label:'平均泊数',unit:'泊'},
+];
+const AGGREGATION_METHODS = [
+  {key:'mean', label:'加重平均'},
+  {key:'median', label:'加重中央値'},
+  {key:'spender_median', label:'支出者ベース加重中央値'},
+  {key:'trimmed_mean', label:'5%トリム平均'}
+];
+const COMPONENTS = [
+  ['lodging','宿泊'],['food','飲食'],['intra_transport','域内交通'],['entertainment','娯楽'],['shopping','買物'],['other','その他']
+];
+const STABILITY_LEVELS = [
+  {value:'stable', label:'安定'},
+  {value:'caution', label:'注意'},
+  {value:'reference', label:'参考'},
+  {value:'suppress', label:'非表示推奨'},
+];
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+const yen = new Intl.NumberFormat('ja-JP', {maximumFractionDigits:0});
+const dec = new Intl.NumberFormat('ja-JP', {maximumFractionDigits:1});
+const pct = new Intl.NumberFormat('ja-JP', {maximumFractionDigits:1});
+const state = {
+  manifest:null,
+  periodFiles:[],
+  records:[],
+  periods:[],
+  metrics:DEFAULT_METRICS,
+  aggregationMethods:AGGREGATION_METHODS,
+  aggregationMethod:'mean',
+  selectedPeriods:[],
+  selectedMetrics:['total_spend_unit_yen'],
+  selectedStability:['stable','caution','reference'],
+  selectedPrefs:[...DEFAULT_PREFS],
+  selectedNats:[0],
+  focusPref:17,
+};
 
-  <script src="./assets/js/dashboard.js"></script>
+init();
+async function init(){
+  wireBaseEvents();
+  try {
+    await loadFromDirectory();
+    setupAfterLoad();
+  } catch (err) {
+    console.warn(err);
+    $('#dataStatus').textContent = 'ローカル読込待ち';
+    $('#localDataModal').classList.add('is-open');
+  }
+}
+async function loadFromDirectory(){
+  const manifest = await fetchJson('./data/manifest.json');
+  const periodData = [];
+  for (const item of (manifest.data_files || [])) periodData.push(await fetchJson(`./data/${item.file}`));
+  applyLoadedData(manifest, periodData);
+}
+async function fetchJson(url){
+  const res = await fetch(url, {cache:'no-store'});
+  if(!res.ok) throw new Error(`${url}: ${res.status}`);
+  return res.json();
+}
+function applyLoadedData(manifest, periodData){
+  state.manifest = manifest;
+  state.periodFiles = periodData.sort((a,b)=>periodSort(a.period.id,b.period.id));
+  state.records = state.periodFiles.flatMap(d => d.records || []);
+  state.periods = state.periodFiles.map(d => d.period).sort((a,b)=>periodSort(a.id,b.id));
+  state.metrics = manifest.metrics?.length ? manifest.metrics : DEFAULT_METRICS;
+  state.aggregationMethods = manifest.aggregation_methods?.length ? manifest.aggregation_methods : AGGREGATION_METHODS;
+  state.aggregationMethod = 'mean';
+  state.selectedPeriods = state.periods.map(p => p.id);
+  state.selectedMetrics = ['total_spend_unit_yen'];
+  state.selectedStability = ['stable','caution','reference'];
+  state.selectedPrefs = [...DEFAULT_PREFS];
+  state.selectedNats = [0];
+  state.focusPref = 17;
+  $('#dataStatus').textContent = `${state.periods.length}期間読込済み`;
+  $('#latestPeriod').textContent = `最新期間: ${state.periods.at(-1)?.label || '-'}`;
+}
+function setupAfterLoad(){ hydrateControls(); renderAll(); }
+function wireBaseEvents(){
+  document.addEventListener('click', (e)=>{ if(!e.target.closest('.multi-select')) $$('.multi-select').forEach(el=>el.classList.remove('is-open')); });
+  $('#clearFilters').addEventListener('click', ()=>{
+    state.selectedPeriods = state.periods.map(p=>p.id);
+    state.selectedMetrics = ['total_spend_unit_yen'];
+    state.aggregationMethod = 'mean';
+    state.selectedStability = ['stable','caution','reference'];
+    state.selectedPrefs = [...DEFAULT_PREFS];
+    state.selectedNats = [0];
+    state.focusPref = 17;
+    hydrateControls(); renderAll();
+  });
+  $('#aggMethod').addEventListener('change', e=>{ state.aggregationMethod = e.target.value || 'mean'; renderAll(); });
+  $('#allPrefs').addEventListener('click', ()=>{ state.selectedPrefs = PREFECTURES.map(p=>p[0]); updatePrefSelect(); hydrateFocusPref(); renderAll(); });
+  $('#topPrefs').addEventListener('click', ()=>{ const top = topPrefCodes(10); state.selectedPrefs = top.length ? top : [...DEFAULT_PREFS]; updatePrefSelect(); hydrateFocusPref(); renderAll(); });
+  $('#focusPref').addEventListener('change', e=>{ state.focusPref = Number(e.target.value); renderAll(); });
+  $('#chooseJsonFiles').addEventListener('click', ()=>$('#jsonInput').click());
+  $('#jsonInput').addEventListener('change', async e=>{
+    try { await loadFromChosenJsonFiles(e.target.files); $('#localDataModal').classList.remove('is-open'); setupAfterLoad(); }
+    catch(err){ alert(`JSONの読み込みに失敗しました: ${err.message}`); }
+  });
+}
+async function loadFromChosenJsonFiles(fileList){
+  const files = Array.from(fileList || []).filter(f=>f.name.toLowerCase().endsWith('.json'));
+  if(!files.length) throw new Error('JSONファイルが選択されていません。');
+  const parsed = [];
+  for (const file of files) parsed.push({name:file.name, data: JSON.parse(await file.text())});
+  const periods = parsed.filter(x=>x.data.records && x.data.period).map(x=>x.data).sort((a,b)=>periodSort(a.period.id,b.period.id));
+  if(!periods.length) throw new Error('四半期JSONが見つかりません。manifest.jsonと各 inbound_b1_YYYYQ#.json を選択してください。');
+  const manifestFile = parsed.find(x=>x.data.data_files);
+  const manifest = manifestFile?.data || {
+    schema_version:'local-manifest', generated_at:new Date().toISOString(),
+    data_files: periods.map(d=>({period_id:d.period.id, period_label:d.period.label, file:'local', record_count:d.records.length})),
+    metrics: periods[0].metrics || DEFAULT_METRICS,
+    aggregation_methods: periods[0].aggregation_methods || AGGREGATION_METHODS,
+    prefectures: periods[0].prefectures || PREFECTURES.map(([pref_code,pref_name])=>({pref_code,pref_name})),
+    nationalities: periods[0].nationalities || Object.entries(NATIONALITIES).map(([nationality_code,nationality_name])=>({nationality_code:Number(nationality_code),nationality_name})),
+  };
+  applyLoadedData(manifest, periods);
+}
+
+function hydrateControls(){ hydratePeriodSelect(); hydrateMetricSelect(); hydrateAggMethod(); hydrateStabilitySelect(); hydratePrefSelect(); hydrateNatSelect(); hydrateFocusPref(); hydrateNatQuick(); }
+function hydratePeriodSelect(){
+  createMultiSelect($('#periodSelect'), {
+    title:'調査期間を選択', options: state.periods.map(p=>({value:p.id,label:p.label})), selected: state.selectedPeriods, summary: periodSummary,
+    actions:[['all','全期間選択'],['latest','最新のみ']],
+    onAction: action=>{ state.selectedPeriods = action==='latest' && state.periods.length ? [state.periods.at(-1).id] : state.periods.map(p=>p.id); updatePeriodSelect(); renderAll(); },
+    onChange: vals=>{ state.selectedPeriods = vals.length ? vals : state.periods.map(p=>p.id); updatePeriodSelect(); renderAll(); }
+  });
+}
+function hydrateMetricSelect(){
+  const opts = state.metrics.map(m=>({value:m.key,label:m.label}));
+  createMultiSelect($('#metricSelect'), {
+    title:'表示指標を選択', options: opts, selected: state.selectedMetrics, summary: metricSummary,
+    actions:[['core','主要指標'],['all','すべて']],
+    onAction: action=>{ state.selectedMetrics = action==='all' ? state.metrics.map(m=>m.key) : ['total_spend_unit_yen','shopping_unit_yen','food_unit_yen','lodging_unit_yen']; updateMetricSelect(); renderAll(); },
+    onChange: vals=>{ state.selectedMetrics = vals.length ? vals : ['total_spend_unit_yen']; updateMetricSelect(); renderAll(); }
+  });
+}
+function hydrateStabilitySelect(){
+  createMultiSelect($('#stabilitySelect'), {
+    title:'表示区分を選択', options: STABILITY_LEVELS, selected: state.selectedStability, summary: stabilitySummary,
+    actions:[['recommended','安定・注意・参考'],['all','すべて']],
+    onAction: action=>{ state.selectedStability = action==='all' ? STABILITY_LEVELS.map(o=>o.value) : ['stable','caution','reference']; updateStabilitySelect(); renderAll(); },
+    onChange: vals=>{ state.selectedStability = vals.length ? vals : ['stable','caution','reference']; updateStabilitySelect(); renderAll(); }
+  });
+}
+function hydratePrefSelect(){
+  const opts = PREFECTURES.map(([value,label])=>({value,label}));
+  createMultiSelect($('#prefSelect'), {
+    title:'都道府県を選択', options: opts, selected: state.selectedPrefs, summary: prefSummary,
+    onChange: vals=>{ state.selectedPrefs = vals.map(Number); if(!state.selectedPrefs.length) state.selectedPrefs=[...DEFAULT_PREFS]; updatePrefSelect(); hydrateFocusPref(); renderAll(); }
+  });
+}
+function hydrateNatSelect(){
+  const opts = Object.entries(NATIONALITIES).map(([value,label])=>({value:Number(value),label}));
+  createMultiSelect($('#natSelect'), {
+    title:'国籍・地域を選択', options: opts, selected: state.selectedNats, summary: natSummary,
+    onChange: vals=>{ const nums=vals.map(Number); state.selectedNats = nums.includes(0) || !nums.length ? [0] : nums.filter(v=>v!==0); updateNatSelect(); hydrateNatQuick(); renderAll(); }
+  });
+}
+function hydrateNatQuick(){
+  $('#natQuick').innerHTML = NAT_GROUPS.map(([key,label,codes])=>`<button type="button" class="chip ${sameSet(codes,state.selectedNats)?'is-active':''}" data-nat-group="${key}">${label}</button>`).join('');
+  $('#natQuick').onclick = (e)=>{ const btn=e.target.closest('[data-nat-group]'); if(!btn) return; const group=NAT_GROUPS.find(g=>g[0]===btn.dataset.natGroup); if(!group) return; state.selectedNats=[...group[2]]; updateNatSelect(); hydrateNatQuick(); renderAll(); };
+}
+function hydrateAggMethod(){
+  const sel = $('#aggMethod');
+  if(!sel) return;
+  sel.innerHTML = state.aggregationMethods.map(m=>`<option value="${escapeHtml(m.key)}">${escapeHtml(m.label)}</option>`).join('');
+  sel.value = state.aggregationMethod || 'mean';
+}
+function hydrateFocusPref(){
+  const opts = state.selectedPrefs.length ? state.selectedPrefs : DEFAULT_PREFS;
+  if(!opts.includes(state.focusPref)) state.focusPref = opts[0] || 17;
+  $('#focusPref').innerHTML = opts.map(code=>`<option value="${code}">${prefName(code)}</option>`).join('');
+  $('#focusPref').value = String(state.focusPref);
+}
+function createMultiSelect(container, cfg){
+  container.className = 'multi-select';
+  container.innerHTML = `
+    <button type="button" class="multi-button"><span>${escapeHtml(cfg.title)}</span><small class="multi-summary">${escapeHtml(cfg.summary())}</small></button>
+    <div class="multi-panel" data-scroll-stable="1">
+      ${cfg.actions?.length ? `<div class="panel-actions">${cfg.actions.map(([k,l])=>`<button class="btn" type="button" data-action="${k}">${escapeHtml(l)}</button>`).join('')}</div>` : ''}
+      ${cfg.options.map(o=>`<label class="option-row"><input type="checkbox" value="${o.value}" ${cfg.selected.map(String).includes(String(o.value))?'checked':''}><span>${escapeHtml(o.label)}</span></label>`).join('')}
+    </div>`;
+  const button = container.querySelector('.multi-button');
+  const panel = container.querySelector('.multi-panel');
+  const rememberScroll = () => { container.dataset.panelScrollTop = String(panel.scrollTop || 0); };
+  const restoreScroll = (top) => {
+    const v = Number.isFinite(Number(top)) ? Number(top) : Number(container.dataset.panelScrollTop || 0);
+    const restore = () => { container.classList.add('is-open'); panel.scrollTop = v; };
+    restore();
+    requestAnimationFrame(restore);
+    requestAnimationFrame(()=>requestAnimationFrame(restore));
+    setTimeout(restore, 0);
+    setTimeout(restore, 40);
+  };
+  button.addEventListener('click', e=>{ e.stopPropagation(); $$('.multi-select').filter(el=>el!==container).forEach(el=>el.classList.remove('is-open')); container.classList.toggle('is-open'); rememberScroll(); });
+  panel.addEventListener('scroll', rememberScroll, {passive:true});
+  panel.addEventListener('pointerdown', rememberScroll, {passive:true});
+  panel.addEventListener('click', e=>e.stopPropagation());
+  container.querySelectorAll('input').forEach(input=>input.addEventListener('change', e=>{
+    e.stopPropagation();
+    const keepTop = panel.scrollTop;
+    container.dataset.panelScrollTop = String(keepTop);
+    cfg.onChange(Array.from(container.querySelectorAll('input:checked')).map(i=>i.value));
+    restoreScroll(keepTop);
+  }));
+  container.querySelectorAll('[data-action]').forEach(btn=>btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const keepTop = panel.scrollTop;
+    container.dataset.panelScrollTop = String(keepTop);
+    cfg.onAction?.(btn.dataset.action);
+    restoreScroll(keepTop);
+  }));
+}
+function syncMultiSelect(container, selected, summary){
+  const set = new Set((selected||[]).map(String));
+  container.querySelectorAll('input').forEach(input=>{ input.checked = set.has(String(input.value)); });
+  const summaryEl = container.querySelector('.multi-summary'); if(summaryEl) summaryEl.textContent = summary;
+}
+function periodSummary(){ return selectedLabels(state.periods.map(p=>({value:p.id,label:p.label})), state.selectedPeriods, '全期間'); }
+function metricSummary(){ return selectedLabels(state.metrics.map(m=>({value:m.key,label:m.label})), state.selectedMetrics, '消費単価'); }
+function stabilitySummary(){ return selectedLabels(STABILITY_LEVELS, state.selectedStability, '安定・注意・参考'); }
+function prefSummary(){ return selectedLabels(PREFECTURES.map(([value,label])=>({value,label})), state.selectedPrefs, '未選択'); }
+function natSummary(){ return selectedLabels(Object.entries(NATIONALITIES).map(([value,label])=>({value:Number(value),label})), state.selectedNats, 'すべて'); }
+function updatePeriodSelect(){ syncMultiSelect($('#periodSelect'), state.selectedPeriods, periodSummary()); }
+function updateMetricSelect(){ syncMultiSelect($('#metricSelect'), state.selectedMetrics, metricSummary()); }
+function updateStabilitySelect(){ syncMultiSelect($('#stabilitySelect'), state.selectedStability, stabilitySummary()); }
+function updatePrefSelect(){ syncMultiSelect($('#prefSelect'), state.selectedPrefs, prefSummary()); }
+function updateNatSelect(){ syncMultiSelect($('#natSelect'), state.selectedNats, natSummary()); }
+
+function renderAll(){ if(!state.records.length) return; hydrateFocusPref(); renderKpis(); renderMainAnalysis(); renderMethodNote(); }
+function renderKpis(){
+  const rec = aggregateBy('all')[0] || emptyAgg();
+  const metricCards = state.selectedMetrics.slice(0,4).map(key=>kpiCard(metricLabel(key), formatMetric(getMetricValue(rec,key), key), metricSubText(rec,key)));
+  const more = [kpiCard('支出サンプル数', yen.format(rec.spend_sample || 0), '件'), kpiCard('表示区分', stabilityLabel(rec), stabilityTooltip(rec))];
+  $('#kpis').innerHTML = [...metricCards, ...more].join('');
+}
+function kpiCard(label,value,sub){ return `<article class="panel kpi"><span class="label">${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(sub||'')}</small></article>`; }
+function renderMainAnalysis(){
+  const metric = state.selectedMetrics[0];
+  const prefRows = filterByStability(aggregateBy('pref').filter(r=>state.selectedPrefs.includes(r.pref_code))).sort((a,b)=>getMetricValue(b,metric)-getMetricValue(a,metric));
+  renderComparisonTable('#prefCompareTable', prefRows, 'pref');
+  renderPrefNationalityRanking();
+  renderHeatmap();
+  renderPrefNationalityComposition();
+  renderCountryPrefComposition();
+  renderMarketQuadrants();
+  renderTrend('#prefTrend','pref');
+  renderTrend('#countryTrend','country');
+  renderReliability('#prefReliability', prefRows);
+}
+function renderComparisonTable(selector, rows, kind){
+  const metrics = state.selectedMetrics;
+  const max = Math.max(1, ...rows.map(r=>Number(getMetricValue(r,metrics[0])||0)));
+  const head = `<thead><tr><th>順位</th><th>${kind==='pref'?'都道府県':'国・地域'}</th>${metrics.map(m=>`<th>${escapeHtml(metricLabel(m))}</th>`).join('')}<th>表示区分</th></tr></thead>`;
+  const body = rows.map((r,i)=>`<tr><td><span class="rank ${i<3?'top':''}">${i+1}</span></td><td><strong>${escapeHtml(kind==='pref'?r.pref_name:r.nationality_name)}</strong></td>${metrics.map((m,mi)=>`<td>${mi===0?barMetric(getMetricValue(r,m), max, m, metricSubText(r,m)):metricValueCell(r,m)}</td>`).join('')}<td>${reliabilityBadge(r)}</td></tr>`).join('');
+  $(selector).innerHTML = head + `<tbody>${body || `<tr><td colspan="${metrics.length+3}" class="empty">表示できるデータがありません。</td></tr>`}</tbody>`;
+}
+function renderPrefNationalityRanking(){
+  const rows = filterByStability(aggregateBy('nat', {prefCodes:[state.focusPref], natCodes:selectedNatCodesForBreakdown()}).filter(r=>r.nationality_code!==0)).sort((a,b)=>getMetricValue(b,state.selectedMetrics[0])-getMetricValue(a,state.selectedMetrics[0])).slice(0,12);
+  renderComparisonTable('#prefNatRanking', rows, 'nat');
+}
+function renderPrefNationalityComposition(){
+  const rows = filterByStability(aggregateBy('nat', {prefCodes:[state.focusPref], natCodes:selectedNatCodesForBreakdown()}).filter(r=>r.nationality_code!==0)).sort((a,b)=>getMetricValue(b,'total_spend_unit_yen')-getMetricValue(a,'total_spend_unit_yen')).slice(0,10);
+  renderCompositionTable('#prefNatComposition', rows, 'nationality_name');
+}
+function renderCountryPrefComposition(){
+  const rows = filterByStability(aggregateBy('pref').filter(r=>state.selectedPrefs.includes(r.pref_code))).sort((a,b)=>getMetricValue(b,'total_spend_unit_yen')-getMetricValue(a,'total_spend_unit_yen')).slice(0,14);
+  renderCompositionTable('#countryPrefComposition', rows, 'pref_name');
+}
+function renderCompositionTable(selector, rows, labelField){
+  const maxByComp = {}; COMPONENTS.forEach(([key])=>{ maxByComp[key] = Math.max(1, ...rows.map(r=>Number(getMetricValue(r,`${key}_unit_yen`)||0))); });
+  const head = `<thead><tr><th>項目</th><th>合計</th>${COMPONENTS.map(([,label])=>`<th>${label}</th>`).join('')}<th>表示区分</th></tr></thead>`;
+  const body = rows.map(r=>`<tr><td><strong>${escapeHtml(r[labelField])}</strong></td><td>${metricValueCell(r,'total_spend_unit_yen')}</td>${COMPONENTS.map(([key],i)=>componentCell(getMetricValue(r,`${key}_unit_yen`)||0, maxByComp[key], i)).join('')}<td>${reliabilityBadge(r)}</td></tr>`).join('');
+  $(selector).innerHTML = head + `<tbody>${body || `<tr><td colspan="9" class="empty">表示できるデータがありません。</td></tr>`}</tbody>`;
+}
+function componentCell(value,max,idx){
+  const cls = idx%3===1 ? 'gold' : (idx%3===2 ? 'blue' : '');
+  return `<td class="component-cell"><div class="component-label"><span>${yen.format(value)}</span><span>${max?Math.round(value/max*100):0}%</span></div><div class="component-track"><div class="component-fill ${cls}" style="width:${Math.max(2, value/max*100)}%"></div></div></td>`;
+}
+function renderHeatmap(){
+  const natCodes = selectedNatCodesForBreakdown().filter(c=>c!==0).slice(0,10);
+  const prefCodes = state.selectedPrefs.slice(0,12);
+  const cellRows = filterByStability(aggregateBy('prefnat', {natCodes, prefCodes}));
+  const byKey = new Map(cellRows.map(r=>[`${r.nationality_code}|${r.pref_code}`, r]));
+  const max = Math.max(1, ...cellRows.map(r=>Number(getMetricValue(r,state.selectedMetrics[0])||0)));
+  const head = `<thead><tr><th>国・地域</th>${prefCodes.map(p=>`<th>${prefName(p)}</th>`).join('')}</tr></thead>`;
+  const body = natCodes.map(n=>`<tr><th>${natName(n)}</th>${prefCodes.map(p=>heatCell(byKey.get(`${n}|${p}`), max)).join('')}</tr>`).join('');
+  $('#heatmapTable').innerHTML = head + `<tbody>${body || '<tr><td class="empty">表示できるデータがありません。</td></tr>'}</tbody>`;
+}
+function heatCell(r,max){
+  if(!r) return `<td class="heat-zero">-</td>`;
+  const v = Number(getMetricValue(r,state.selectedMetrics[0])||0);
+  const alpha = Math.max(0.08, Math.min(0.86, v/max));
+  const bg = `rgba(39, 200, 189, ${alpha})`; const color = alpha > .48 ? '#fff' : '#183047';
+  return `<td><div class="heat-cell" style="background:${bg};color:${color}" title="${escapeHtml(stabilityTooltip(r))}">${formatMetric(v,state.selectedMetrics[0])}<br>${reliabilityBadge(r)}</div></td>`;
+}
+function renderMarketQuadrants(){
+  const natCodes = selectedNatCodesForBreakdown().filter(c=>c!==0);
+  const rows = filterByStability(aggregateBy('nat', {natCodes, prefCodes:state.selectedPrefs})).filter(r=>r.nationality_code!==0 && r.spend_sample>0);
+  const metric = state.selectedMetrics[0];
+  const metricMedian = median(rows.map(r=>Number(getMetricValue(r,metric)||0)));
+  const volumeMedian = median(rows.map(r=>Number(r.visitor_weighted_index||r.spend_sample||0)));
+  const groups = [
+    ['star','高単価 × 高ボリューム', r=>getMetricValue(r,metric)>=metricMedian && (r.visitor_weighted_index||r.spend_sample||0)>=volumeMedian],
+    ['grow','高単価 × 低ボリューム', r=>getMetricValue(r,metric)>=metricMedian && (r.visitor_weighted_index||r.spend_sample||0)<volumeMedian],
+    ['volume','低単価 × 高ボリューム', r=>getMetricValue(r,metric)<metricMedian && (r.visitor_weighted_index||r.spend_sample||0)>=volumeMedian],
+    ['watch','低単価 × 低ボリューム', r=>getMetricValue(r,metric)<metricMedian && (r.visitor_weighted_index||r.spend_sample||0)<volumeMedian],
+  ];
+  $('#marketQuadrants').innerHTML = groups.map(([key,title,pred])=>{
+    const items = rows.filter(pred).sort((a,b)=>getMetricValue(b,metric)-getMetricValue(a,metric)).slice(0,8);
+    return `<div class="quadrant"><h4>${title}<span class="badge ${key==='star'?'stable':key==='grow'?'caution':'reference'}">${items.length}</span></h4><div class="market-list">${items.map(r=>`<div class="market-card"><strong>${escapeHtml(r.nationality_name)}</strong><small>${formatMetric(getMetricValue(r,metric),metric)} / n=${yen.format(r.spend_sample)} / ${stabilityLabel(r)}</small></div>`).join('') || '<div class="empty">該当なし</div>'}</div></div>`;
+  }).join('');
+}
+function renderTrend(selector, mode){
+  const periods = state.periods.filter(p=>state.selectedPeriods.includes(p.id));
+  if(periods.length < 2){ $(selector).innerHTML = '<div class="empty">複数期間を選択すると推移グラフを表示します。</div>'; return; }
+  const metric = state.selectedMetrics[0];
+  const series = [];
+  if(mode==='pref'){
+    for(const p of state.selectedPrefs.slice(0,6)) series.push({label:prefName(p), rows:periods.map(period=>aggregateFor({periods:[period.id], prefCodes:[p], natCodes:natFilterCodes()})[0] || emptyAgg())});
+  } else {
+    const nats = selectedNatCodesForBreakdown().filter(c=>c!==0).slice(0,6);
+    for(const n of nats) series.push({label:natName(n), rows:periods.map(period=>aggregateFor({periods:[period.id], prefCodes:state.selectedPrefs, natCodes:[n]})[0] || emptyAgg())});
+  }
+  $(selector).innerHTML = lineChart(periods, series, metric);
+}
+function lineChart(periods, series, metric){
+  const w=980,h=320,pad=44; const vals=series.flatMap(s=>s.rows.map(r=>Number(getMetricValue(r,metric)||0))); const max=Math.max(1,...vals)*1.1;
+  const x=i=>pad+(periods.length===1?0:i*(w-pad*2)/(periods.length-1)); const y=v=>h-pad-(v/max)*(h-pad*2);
+  const colors=['#27c8bd','#f3a84b','#6ea8ff','#7fbc6e','#c7a241','#8d9bb8'];
+  const grid=[0,.25,.5,.75,1].map(t=>`<line x1="${pad}" y1="${pad+t*(h-pad*2)}" x2="${w-pad}" y2="${pad+t*(h-pad*2)}" stroke="#e6eff5"/><text x="8" y="${pad+t*(h-pad*2)+4}" font-size="11" fill="#71849b">${yen.format(max*(1-t))}</text>`).join('');
+  const lines=series.map((s,si)=>{ const d=s.rows.map((r,i)=>`${i?'L':'M'}${x(i)},${y(Number(getMetricValue(r,metric)||0))}`).join(' '); const pts=s.rows.map((r,i)=>`<circle cx="${x(i)}" cy="${y(Number(getMetricValue(r,metric)||0))}" r="4" fill="${colors[si%colors.length]}"><title>${s.label} ${periods[i].label}: ${formatMetric(getMetricValue(r,metric),metric)}</title></circle>`).join(''); return `<path d="${d}" fill="none" stroke="${colors[si%colors.length]}" stroke-width="3"/>${pts}`; }).join('');
+  const labels=periods.map((p,i)=>`<text x="${x(i)}" y="${h-12}" font-size="11" text-anchor="middle" fill="#71849b">${p.label.replace('年','\n')}</text>`).join('');
+  const legend=series.map((s,i)=>`<span class="pill"><span style="width:10px;height:10px;background:${colors[i%colors.length]};border-radius:999px;display:inline-block"></span>${escapeHtml(s.label)}</span>`).join('');
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${legend}</div><svg class="svg-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="推移グラフ">${grid}${lines}${labels}</svg>`;
+}
+function renderReliability(selector, rows){
+  const counts = {stable:0,caution:0,reference:0,suppress:0}; rows.forEach(r=>{ counts[stabilityCode(r)] = (counts[stabilityCode(r)]||0)+1; });
+  $(selector).innerHTML = `<div class="market-list">${STABILITY_LEVELS.map(x=>`<div class="market-card"><strong>${x.label}</strong><small>${counts[x.value]||0}セル</small></div>`).join('')}</div><p class="note-small">判定材料：支出サンプル数、有効サンプル数、近似RSE、外れ値影響、パッケージ按分割合。</p>`;
+}
+function renderMethodNote(){
+  $('#methodNote').innerHTML = `<p>消費単価は直接支出にパッケージツアー料金の按分額を加えた値です。パッケージ按分は国籍・地域別の観光・レジャー目的かつ個別手配者の費目構成比と、都道府県別泊数に応じてJSON作成時に処理しています。</p><p>表示値は分析条件の集計方法で切り替えます。加重平均は公式推計に近い見方、加重中央値は典型的な旅行者像を把握する補助指標、5%トリム平均は外れ値の影響を抑えた参考値です。</p><p>表示区分は公式な標準誤差ではなく、ダッシュボード上の安定性目安です。詳しい理由はラベルにマウスを合わせると確認できます。</p>`;
+}
+
+function aggregateBy(level, opts={}){
+  if(level==='all') return aggregateFor({periods:state.selectedPeriods, prefCodes:opts.prefCodes || state.selectedPrefs, natCodes:natFilterCodes(), group:'all'});
+  if(level==='pref') return aggregateFor({periods:state.selectedPeriods, prefCodes:opts.prefCodes || PREFECTURES.map(p=>p[0]), natCodes:natFilterCodes(), group:'pref'});
+  if(level==='nat') return aggregateFor({periods:state.selectedPeriods, prefCodes:opts.prefCodes || state.selectedPrefs, natCodes:opts.natCodes || selectedNatCodesForBreakdown(), group:'nat'});
+  if(level==='prefnat') return aggregateFor({periods:state.selectedPeriods, prefCodes:opts.prefCodes || state.selectedPrefs, natCodes:opts.natCodes || selectedNatCodesForBreakdown(), group:'prefnat'});
+  return [];
+}
+function aggregateFor({periods, prefCodes, natCodes, group='all'}){
+  const periodSet = new Set(periods || state.selectedPeriods);
+  const prefSet = new Set((prefCodes || PREFECTURES.map(p=>p[0])).map(Number));
+  const useAllNat = !natCodes || natCodes.includes(0);
+  const natSet = new Set((useAllNat ? [0] : natCodes).map(Number));
+  const map = new Map();
+  for(const r of state.records){
+    if(!periodSet.has(r.period_id)) continue; if(!prefSet.has(Number(r.pref_code))) continue; if(!natSet.has(Number(r.nationality_code))) continue;
+    const key = group==='pref' ? `p:${r.pref_code}` : group==='nat' ? `n:${r.nationality_code}` : group==='prefnat' ? `p:${r.pref_code}|n:${r.nationality_code}` : 'all';
+    let a = map.get(key);
+    if(!a){ a=emptyAgg(); a.pref_code=r.pref_code; a.pref_name=r.pref_name; a.nationality_code=r.nationality_code; a.nationality_name=r.nationality_name; map.set(key,a); }
+    addRecordToAgg(a,r);
+  }
+  return Array.from(map.values()).map(finalizeAgg);
+}
+function emptyAgg(){ return {visit_sample:0,spend_sample:0,visitor_weighted_index:0,spend_weight_sum:0,spend_weight_sq_sum:0,nights_weighted:0,direct_spend_weighted:0,package_allocated_weighted:0,total_spend_weighted:0,total_spend_weighted_sq:0,component_weighted:{},metric_stats:{},top_contributions:[],top1_spend_share:0,top5_spend_share:0,top10_weight_share:0,pref_code:0,pref_name:'',nationality_code:0,nationality_name:''}; }
+function addRecordToAgg(a,r){
+  const den = Number(r.spend_weight_sum || 0);
+  a.visit_sample += Number(r.visit_sample || 0); a.spend_sample += Number(r.spend_sample || 0); a.visitor_weighted_index += Number(r.visitor_weighted_index || 0);
+  a.spend_weight_sum += den;
+  a.spend_weight_sq_sum += Number(r.spend_weight_sq_sum || r.sum_w2 || (r.spend_sample ? (den*den)/Math.max(1, r.spend_sample) : 0));
+  a.nights_weighted += den * Number(r.avg_nights || 0);
+  a.direct_spend_weighted += Number(r.direct_spend_weighted || (Number(r.direct_spend_unit_yen||0)*den));
+  a.package_allocated_weighted += Number(r.package_allocated_weighted || (Number(r.package_allocated_unit_yen||0)*den));
+  a.total_spend_weighted += Number(r.total_spend_weighted || (Number(r.total_spend_unit_yen||0)*den));
+  a.total_spend_weighted_sq += Number(r.total_spend_weighted_sq || r.sum_total_wx2 || (den * Math.pow(Number(r.total_spend_unit_yen || 0), 2)));
+  for(const [key] of COMPONENTS) a.component_weighted[key] = (a.component_weighted[key] || 0) + Number(r[`${key}_unit_yen`] || 0) * den;
+  const top = Array.isArray(r.top_contributions) ? r.top_contributions : (r.top1_spend_share ? [Number(r.top1_spend_share)*Number(r.total_spend_weighted||0)] : []);
+  for(const v of top) pushTop(a.top_contributions, Number(v||0), 5);
+  a.top1_spend_share = Math.max(a.top1_spend_share || 0, Number(r.top1_spend_share || 0));
+  a.top5_spend_share = Math.max(a.top5_spend_share || 0, Number(r.top5_spend_share || 0));
+  a.top10_weight_share = Math.max(a.top10_weight_share || 0, Number(r.top10_weight_share || 0));
+  const stats = r.metric_stats || buildLegacyStats(r, den);
+  for(const [key, st] of Object.entries(stats)){
+    if(!a.metric_stats[key]) a.metric_stats[key] = {sum_w:0,sum_w2:0,sum_wx:0,sum_wx2:0};
+    a.metric_stats[key].sum_w += Number(st.sum_w || 0); a.metric_stats[key].sum_w2 += Number(st.sum_w2 || 0); a.metric_stats[key].sum_wx += Number(st.sum_wx || 0); a.metric_stats[key].sum_wx2 += Number(st.sum_wx2 || 0); mergeHistogram(a.metric_stats[key], st.histogram || []);
+  }
+}
+function buildLegacyStats(r, den){
+  const out = {};
+  for(const m of DEFAULT_METRICS){
+    const key = m.key; if(!(key.includes('unit_yen') || key==='avg_nights')) continue;
+    const x = Number(r[key] || 0); const w2 = Number(r.spend_weight_sq_sum || (r.spend_sample ? den*den/Math.max(1,r.spend_sample) : 0));
+    out[key] = {sum_w:den,sum_w2:w2,sum_wx:den*x,sum_wx2:den*x*x};
+  }
+  return out;
+}
+function finalizeAgg(a){
+  const den = a.spend_weight_sum; const out = {...a};
+  out.direct_spend_unit_yen = den ? a.direct_spend_weighted/den : 0; out.package_allocated_unit_yen = den ? a.package_allocated_weighted/den : 0; out.total_spend_unit_yen = den ? a.total_spend_weighted/den : 0; out.avg_nights = den ? a.nights_weighted/den : 0;
+  for(const [key] of COMPONENTS) out[`${key}_unit_yen`] = den ? (a.component_weighted[key]||0)/den : 0;
+  finalizeMetricStats(out.metric_stats);
+  out.n_eff = den && a.spend_weight_sq_sum ? (den*den)/a.spend_weight_sq_sum : 0;
+  out.package_share = a.total_spend_weighted ? a.package_allocated_weighted / a.total_spend_weighted : 0;
+  out.top1_spend_share = Math.max(a.top1_spend_share || 0, a.total_spend_weighted && a.top_contributions.length ? a.top_contributions[0] / a.total_spend_weighted : 0);
+  out.top5_spend_share = Math.max(a.top5_spend_share || 0, a.total_spend_weighted ? a.top_contributions.reduce((x,y)=>x+y,0) / a.total_spend_weighted : 0);
+  out.top10_weight_share = a.top10_weight_share || 0;
+  const stab = computeStability(out, state.selectedMetrics[0]); out.reliability_code = stab.code; out.reliability_label = stab.label; out.reliability = stab.label; out.reliability_reasons = stab.reasons; out.rse = stab.rse;
+  return out;
+}
+function metricRse(row, metricKey){
+  const key = (metricKey && (metricKey.includes('unit_yen') || metricKey==='avg_nights')) ? metricKey : 'total_spend_unit_yen';
+  const s = row.metric_stats?.[key] || row.metric_stats?.total_spend_unit_yen;
+  if(!s || !s.sum_w || !s.sum_wx) return null;
+  const nEff = s.sum_w2 ? (s.sum_w*s.sum_w)/s.sum_w2 : row.n_eff;
+  const mean = s.sum_wx/s.sum_w; if(Math.abs(mean) < 1e-9 || !nEff) return null;
+  const variance = Math.max(0, s.sum_wx2/s.sum_w - mean*mean); const se = Math.sqrt(variance/Math.max(1,nEff));
+  return se/Math.abs(mean);
+}
+function computeStability(row, metricKey){
+  const n=Number(row.spend_sample||0), nEff=Number(row.n_eff||0), rse=metricRse(row, metricKey); const reasons=[]; let code;
+  if(n>=80 && nEff>=50 && (rse===null || rse<=0.15)) code='stable';
+  else if(n>=40 && nEff>=25 && (rse===null || rse<=0.25)) code='caution';
+  else if(n>=20 && nEff>=10 && (rse===null || rse<=0.40)) code='reference';
+  else code='suppress';
+  if(n<80) reasons.push(`支出サンプル数 ${yen.format(n)}件`); if(nEff<50) reasons.push(`有効サンプル数 ${dec.format(nEff)}`); if(rse!==null && rse>0.15) reasons.push(`近似RSE ${pct.format(rse*100)}%`);
+  if(row.top1_spend_share>0.30){ code=downgrade(code,1); reasons.push(`最大回答影響度 ${pct.format(row.top1_spend_share*100)}%`); }
+  if(row.top5_spend_share>0.60){ code=downgrade(code,1); reasons.push(`上位5回答影響度 ${pct.format(row.top5_spend_share*100)}%`); }
+  if(row.top10_weight_share>0.70){ code=downgrade(code,1); reasons.push(`上位10ウェイト集中 ${pct.format(row.top10_weight_share*100)}%`); }
+  if(row.package_share>0.70){ code=downgrade(code,2); reasons.push(`パッケージ按分割合 ${pct.format(row.package_share*100)}%`); }
+  else if(row.package_share>0.50){ code=downgrade(code,1); reasons.push(`パッケージ按分割合 ${pct.format(row.package_share*100)}%`); }
+  else if(row.package_share>0.30){ reasons.push(`パッケージ按分割合 ${pct.format(row.package_share*100)}%`); }
+  if(!reasons.length) reasons.push('主要な注意要因なし');
+  return {code, label:stabilityLabel(code), rse, reasons};
+}
+function downgrade(code, steps=1){ const order=['stable','caution','reference','suppress']; const idx=Math.max(0, order.indexOf(code)); return order[Math.min(order.length-1, idx+steps)]; }
+function filterByStability(rows){ const set=new Set(state.selectedStability); return rows.filter(r=>set.has(stabilityCode(r))); }
+function stabilityCode(row){ return row.reliability_code || legacyRelCode(row.reliability); }
+function stabilityLabel(rowOrCode){ const code = typeof rowOrCode === 'object' ? stabilityCode(rowOrCode) : rowOrCode; return ({stable:'安定',caution:'注意',reference:'参考',suppress:'非表示推奨'})[code] || '参考'; }
+function legacyRelCode(label){ if(label==='安定' || label==='通常') return 'stable'; if(label==='注意') return 'caution'; if(label==='参考' || label==='参考値未満') return 'reference'; return 'suppress'; }
+function reliabilityBadge(rowOrCode){ const code = typeof rowOrCode === 'object' ? stabilityCode(rowOrCode) : rowOrCode; const title = typeof rowOrCode === 'object' ? stabilityTooltip(rowOrCode) : stabilityLabel(code); return `<span class="badge ${code}" title="${escapeHtml(title)}">${escapeHtml(stabilityLabel(code))}</span>`; }
+function stabilityTooltip(row){ return `${stabilityLabel(row)}｜n=${yen.format(row.spend_sample||0)}、n_eff=${dec.format(row.n_eff||0)}、RSE=${row.rse==null?'-':pct.format(row.rse*100)+'%'}、pkg=${pct.format((row.package_share||0)*100)}%、top1=${pct.format((row.top1_spend_share||0)*100)}%${row.reliability_reasons?.length?'｜'+row.reliability_reasons.join(' / '):''}`; }
+function pushTop(arr, value, limit=5){ if(!Number.isFinite(value) || value<=0) return; arr.push(value); arr.sort((a,b)=>b-a); if(arr.length>limit) arr.length=limit; }
+function natFilterCodes(){ return state.selectedNats.includes(0) ? [0] : state.selectedNats; }
+function selectedNatCodesForBreakdown(){ return state.selectedNats.includes(0) ? Object.keys(NATIONALITIES).map(Number).filter(n=>n!==0) : state.selectedNats; }
+function topPrefCodes(n){ return filterByStability(aggregateFor({periods:state.selectedPeriods, prefCodes:PREFECTURES.map(p=>p[0]), natCodes:natFilterCodes(), group:'pref'})).sort((a,b)=>getMetricValue(b,state.selectedMetrics[0])-getMetricValue(a,state.selectedMetrics[0])).slice(0,n).map(r=>r.pref_code); }
+function metricValueCell(row,key){
+  return `<span class="value">${formatMetric(getMetricValue(row,key),key)}</span>${metricSubText(row,key)?`<span class="metric-detail">${escapeHtml(metricSubText(row,key))}</span>`:''}`;
+}
+function barMetric(value,max,key,detail=''){
+  return `<div class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, Number(value||0)/max*100)}%"></div></div><span class="value">${formatMetric(value,key)}</span></div>${detail?`<span class="metric-detail">${escapeHtml(detail)}</span>`:''}`;
+}
+function getMetricValue(row,key,method=state.aggregationMethod){
+  if(!row) return 0;
+  if(!(key && (key.includes('unit_yen') || key==='avg_nights'))) return Number(row[key] || 0);
+  const st = row.metric_stats?.[key];
+  if(method === 'median') return Number(st?.weighted_median ?? approximateQuantile(st?.histogram, .5, false) ?? row[key] ?? 0);
+  if(method === 'spender_median') return Number(st?.spender_weighted_median ?? approximateQuantile(st?.histogram, .5, true) ?? st?.weighted_median ?? row[key] ?? 0);
+  if(method === 'trimmed_mean') return Number(st?.trimmed_mean ?? approximateTrimmedMean(st?.histogram, .05, .95) ?? row[key] ?? 0);
+  return Number(row[key] || 0);
+}
+function metricSubText(row,key){
+  if(!(key && (key.includes('unit_yen') || key==='avg_nights'))) return metricUnit(key);
+  const st = row.metric_stats?.[key];
+  const mean = Number(row[key] || 0);
+  const med = Number(st?.weighted_median ?? approximateQuantile(st?.histogram, .5, false) ?? 0);
+  const ratio = med > 0 ? mean / med : null;
+  const methodLabel = aggregationMethodLabel();
+  if(state.aggregationMethod === 'mean') return med ? `加重中央値 ${formatMetric(med,key)}${ratio && ratio>=1.5 ? ` / 平均÷中央値 ${dec.format(ratio)}倍` : ''}` : metricUnit(key);
+  return `集計方法: ${methodLabel}${mean ? ` / 加重平均 ${formatMetric(mean,key)}` : ''}`;
+}
+function aggregationMethodLabel(){ return (state.aggregationMethods || AGGREGATION_METHODS).find(m=>m.key===state.aggregationMethod)?.label || '加重平均'; }
+function mergeHistogram(stat, hist){
+  if(!Array.isArray(hist) || !hist.length) return;
+  if(!stat.histogram) stat.histogram = [];
+  for(const b of hist){
+    const id = `${b.min}|${b.max}`;
+    let t = stat.histogram.find(x=>`${x.min}|${x.max}`===id);
+    if(!t){ t = {min:b.min, max:b.max, label:b.label, weight:0, spender_weight:0}; stat.histogram.push(t); }
+    t.weight += Number(b.weight || 0);
+    t.spender_weight += Number(b.spender_weight || 0);
+  }
+  stat.histogram.sort((a,b)=>Number(a.min||0)-Number(b.min||0));
+}
+function finalizeMetricStats(stats){
+  for(const st of Object.values(stats || {})){
+    if(Array.isArray(st.histogram) && st.histogram.length){
+      st.weighted_median = approximateQuantile(st.histogram, .5, false);
+      st.weighted_p25 = approximateQuantile(st.histogram, .25, false);
+      st.weighted_p75 = approximateQuantile(st.histogram, .75, false);
+      st.spender_weighted_median = approximateQuantile(st.histogram, .5, true);
+      st.trimmed_mean = approximateTrimmedMean(st.histogram, .05, .95);
+    }
+  }
+}
+function approximateQuantile(hist, q=.5, spender=false){
+  if(!Array.isArray(hist) || !hist.length) return null;
+  const weightKey = spender ? 'spender_weight' : 'weight';
+  const total = hist.reduce((s,b)=>s+Number(b[weightKey]||0),0);
+  if(total <= 0) return null;
+  const target = total*q;
+  let acc=0;
+  for(const b of hist){
+    const w = Number(b[weightKey]||0); if(w<=0) continue;
+    const prev = acc; acc += w;
+    if(acc >= target){
+      const min=Number(b.min||0), rawMax=b.max==null?min*1.8+10000:Number(b.max);
+      const max=Math.max(min, rawMax);
+      const frac = w ? (target-prev)/w : 0;
+      return min + (max-min)*Math.max(0, Math.min(1, frac));
+    }
+  }
+  const last = hist[hist.length-1]; return Number(last.max ?? last.min ?? 0);
+}
+function approximateTrimmedMean(hist, lo=.05, hi=.95){
+  if(!Array.isArray(hist) || !hist.length) return null;
+  const total=hist.reduce((s,b)=>s+Number(b.weight||0),0); if(total<=0) return null;
+  const lower=total*lo, upper=total*hi; let acc=0, wx=0, ww=0;
+  for(const b of hist){
+    const w=Number(b.weight||0); if(w<=0) continue;
+    const start=acc, end=acc+w; const use=Math.max(0, Math.min(end,upper)-Math.max(start,lower));
+    if(use>0){ const min=Number(b.min||0); const max=b.max==null?min*1.8+10000:Number(b.max); wx += use*((min+max)/2); ww += use; }
+    acc=end; if(acc>=upper) break;
+  }
+  return ww ? wx/ww : null;
+}
+function metricLabel(key){ return state.metrics.find(m=>m.key===key)?.label || key; }
+function metricUnit(key){ return state.metrics.find(m=>m.key===key)?.unit || ''; }
+function formatMetric(v,key){ const val=Number(v||0); if(key.includes('unit_yen')) return `${yen.format(val)}円`; if(key==='avg_nights') return `${dec.format(val)}泊`; if(key==='spend_sample') return `${yen.format(val)}件`; if(key==='visitor_weighted_index') return yen.format(val); return yen.format(val); }
+function prefName(code){ return PREFECTURES.find(p=>p[0]===Number(code))?.[1] || `県${code}`; }
+function natName(code){ return NATIONALITIES[Number(code)] || `国籍${code}`; }
+function periodSort(a,b){ const pa=parsePeriod(a), pb=parsePeriod(b); return pa.y!==pb.y ? pa.y-pb.y : pa.q-pb.q; }
+function parsePeriod(id){ const m=String(id).match(/(\d{4})Q([1-4])/); return {y:m?Number(m[1]):0,q:m?Number(m[2]):0}; }
+function selectedLabels(options, selected, fallback){ const set=new Set(selected.map(String)); if(selected.length===options.length) return fallback || 'すべて'; const labels=options.filter(o=>set.has(String(o.value))).map(o=>o.label); if(!labels.length) return '未選択'; return labels.length<=3 ? labels.join('、') : `${labels.slice(0,3).join('、')} 他${labels.length-3}`; }
+function sameSet(a,b){ return a.length===b.length && a.every(x=>b.includes(x)); }
+function median(arr){ const vals=arr.filter(Number.isFinite).sort((a,b)=>a-b); if(!vals.length) return 0; const mid=Math.floor(vals.length/2); return vals.length%2 ? vals[mid] : (vals[mid-1]+vals[mid])/2; }
+function escapeHtml(value){ return String(value ?? '').replace(/[&<>'"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+
+  </script>
 </body>
 </html>
