@@ -156,6 +156,9 @@ tr:last-child td { border-bottom:0; }
 .stability-detail { color: var(--muted); font-size: 12px; font-weight: 800; margin-top: 4px; }
 .multi-panel { overscroll-behavior: contain; }
 .select-native { width:100%; background:#fff; color:var(--ink); border:1px solid var(--line); border-radius:15px; padding:13px 14px; box-shadow:0 3px 10px rgba(24,46,69,.04); font-weight:800; }
+.segmented { display:grid; grid-template-columns: repeat(2, 1fr); gap:6px; padding:6px; border:1px solid var(--line); border-radius:16px; background:#eef5f9; box-shadow:0 3px 10px rgba(24,46,69,.04); }
+.segmented .seg-btn { border:0; border-radius:12px; background:transparent; color:#47627c; padding:10px 12px; font-weight:900; }
+.segmented .seg-btn.is-active { background:#fff; color:var(--teal-dark); box-shadow:0 4px 10px rgba(24,46,69,.08); }
 .metric-detail { display:block; margin-top:4px; color:var(--muted); font-size:12px; font-weight:800; line-height:1.35; }
 .stat-note { color:var(--muted); font-size:12px; font-weight:800; }
 .option-row input { flex: 0 0 auto; }
@@ -205,6 +208,13 @@ tr:last-child td { border-bottom:0; }
         <div class="control wide">
           <span class="label">集計方法</span>
           <select id="aggMethod" class="select-native"></select>
+        </div>
+        <div class="control wide">
+          <span class="label">表示単位</span>
+          <div class="segmented" id="valueBasis" role="group" aria-label="表示単位">
+            <button class="seg-btn is-active" type="button" data-basis="person">1人当たり</button>
+            <button class="seg-btn" type="button" data-basis="day">1日当たり</button>
+          </div>
         </div>
         <div class="control wide">
           <span class="label">表示区分（安定性）</span>
@@ -359,6 +369,7 @@ const state = {
   metrics:DEFAULT_METRICS,
   aggregationMethods:AGGREGATION_METHODS,
   aggregationMethod:'mean',
+  valueBasis:'person',
   selectedPeriods:[],
   selectedMetrics:['total_spend_unit_yen'],
   selectedStability:['stable','caution','reference'],
@@ -398,6 +409,7 @@ function applyLoadedData(manifest, periodData){
   state.metrics = manifest.metrics?.length ? manifest.metrics : DEFAULT_METRICS;
   state.aggregationMethods = manifest.aggregation_methods?.length ? manifest.aggregation_methods : AGGREGATION_METHODS;
   state.aggregationMethod = 'mean';
+  state.valueBasis = 'person';
   state.selectedPeriods = state.periods.map(p => p.id);
   state.selectedMetrics = ['total_spend_unit_yen'];
   state.selectedStability = ['stable','caution','reference'];
@@ -414,6 +426,8 @@ function wireBaseEvents(){
     state.selectedPeriods = state.periods.map(p=>p.id);
     state.selectedMetrics = ['total_spend_unit_yen'];
     state.aggregationMethod = 'mean';
+    state.valueBasis = 'person';
+    updateValueBasis();
     state.selectedStability = ['stable','caution','reference'];
     state.selectedPrefs = [...DEFAULT_PREFS];
     state.selectedNats = [0];
@@ -421,6 +435,7 @@ function wireBaseEvents(){
     hydrateControls(); renderAll();
   });
   $('#aggMethod').addEventListener('change', e=>{ state.aggregationMethod = e.target.value || 'mean'; renderAll(); });
+  $('#valueBasis').addEventListener('click', e=>{ const btn=e.target.closest('[data-basis]'); if(!btn) return; state.valueBasis = btn.dataset.basis === 'day' ? 'day' : 'person'; updateValueBasis(); renderAll(); });
   $('#allPrefs').addEventListener('click', ()=>{ state.selectedPrefs = PREFECTURES.map(p=>p[0]); updatePrefSelect(); hydrateFocusPref(); renderAll(); });
   $('#topPrefs').addEventListener('click', ()=>{ const top = topPrefCodes(10); state.selectedPrefs = top.length ? top : [...DEFAULT_PREFS]; updatePrefSelect(); hydrateFocusPref(); renderAll(); });
   $('#focusPref').addEventListener('change', e=>{ state.focusPref = Number(e.target.value); renderAll(); });
@@ -449,7 +464,7 @@ async function loadFromChosenJsonFiles(fileList){
   applyLoadedData(manifest, periods);
 }
 
-function hydrateControls(){ hydratePeriodSelect(); hydrateMetricSelect(); hydrateAggMethod(); hydrateStabilitySelect(); hydratePrefSelect(); hydrateNatSelect(); hydrateFocusPref(); hydrateNatQuick(); }
+function hydrateControls(){ hydratePeriodSelect(); hydrateMetricSelect(); hydrateAggMethod(); updateValueBasis(); hydrateStabilitySelect(); hydratePrefSelect(); hydrateNatSelect(); hydrateFocusPref(); hydrateNatQuick(); }
 function hydratePeriodSelect(){
   createMultiSelect($('#periodSelect'), {
     title:'調査期間を選択', options: state.periods.map(p=>({value:p.id,label:p.label})), selected: state.selectedPeriods, summary: periodSummary,
@@ -498,6 +513,11 @@ function hydrateAggMethod(){
   if(!sel) return;
   sel.innerHTML = state.aggregationMethods.map(m=>`<option value="${escapeHtml(m.key)}">${escapeHtml(m.label)}</option>`).join('');
   sel.value = state.aggregationMethod || 'mean';
+}
+function updateValueBasis(){
+  const root = $('#valueBasis');
+  if(!root) return;
+  root.querySelectorAll('[data-basis]').forEach(btn=>btn.classList.toggle('is-active', btn.dataset.basis === (state.valueBasis || 'person')));
 }
 function hydrateFocusPref(){
   const opts = state.selectedPrefs.length ? state.selectedPrefs : DEFAULT_PREFS;
@@ -603,12 +623,12 @@ function renderCountryPrefComposition(){
 function renderCompositionTable(selector, rows, labelField){
   const maxByComp = {}; COMPONENTS.forEach(([key])=>{ maxByComp[key] = Math.max(1, ...rows.map(r=>Number(getMetricValue(r,`${key}_unit_yen`)||0))); });
   const head = `<thead><tr><th>項目</th><th>合計</th>${COMPONENTS.map(([,label])=>`<th>${label}</th>`).join('')}<th>表示区分</th></tr></thead>`;
-  const body = rows.map(r=>`<tr><td><strong>${escapeHtml(r[labelField])}</strong></td><td>${metricValueCell(r,'total_spend_unit_yen')}</td>${COMPONENTS.map(([key],i)=>componentCell(getMetricValue(r,`${key}_unit_yen`)||0, maxByComp[key], i)).join('')}<td>${reliabilityBadge(r)}</td></tr>`).join('');
+  const body = rows.map(r=>`<tr><td><strong>${escapeHtml(r[labelField])}</strong></td><td>${metricValueCell(r,'total_spend_unit_yen')}</td>${COMPONENTS.map(([key],i)=>componentCell(getMetricValue(r,`${key}_unit_yen`)||0, maxByComp[key], i, `${key}_unit_yen`)).join('')}<td>${reliabilityBadge(r)}</td></tr>`).join('');
   $(selector).innerHTML = head + `<tbody>${body || `<tr><td colspan="9" class="empty">表示できるデータがありません。</td></tr>`}</tbody>`;
 }
-function componentCell(value,max,idx){
+function componentCell(value,max,idx,key){
   const cls = idx%3===1 ? 'gold' : (idx%3===2 ? 'blue' : '');
-  return `<td class="component-cell"><div class="component-label"><span>${yen.format(value)}</span><span>${max?Math.round(value/max*100):0}%</span></div><div class="component-track"><div class="component-fill ${cls}" style="width:${Math.max(2, value/max*100)}%"></div></div></td>`;
+  return `<td class="component-cell"><div class="component-label"><span>${formatMetric(value,key)}</span><span>${max?Math.round(value/max*100):0}%</span></div><div class="component-track"><div class="component-fill ${cls}" style="width:${Math.max(2, value/max*100)}%"></div></div></td>`;
 }
 function renderHeatmap(){
   const natCodes = selectedNatCodesForBreakdown().filter(c=>c!==0).slice(0,10);
@@ -672,7 +692,7 @@ function renderReliability(selector, rows){
   $(selector).innerHTML = `<div class="market-list">${STABILITY_LEVELS.map(x=>`<div class="market-card"><strong>${x.label}</strong><small>${counts[x.value]||0}セル</small></div>`).join('')}</div><p class="note-small">判定材料：支出サンプル数、有効サンプル数、近似RSE、外れ値影響、パッケージ按分割合。</p>`;
 }
 function renderMethodNote(){
-  $('#methodNote').innerHTML = `<p>消費単価は直接支出にパッケージツアー料金の按分額を加えた値です。パッケージ按分は国籍・地域別の観光・レジャー目的かつ個別手配者の費目構成比と、都道府県別泊数に応じてJSON作成時に処理しています。</p><p>表示値は分析条件の集計方法で切り替えます。加重平均は公式推計に近い見方、加重中央値は典型的な旅行者像を把握する補助指標、5%トリム平均は外れ値の影響を抑えた参考値です。</p><p>表示区分は公式な標準誤差ではなく、ダッシュボード上の安定性目安です。詳しい理由はラベルにマウスを合わせると確認できます。</p>`;
+  $('#methodNote').innerHTML = `<p>消費単価は直接支出にパッケージツアー料金の按分額を加えた値です。パッケージ按分は国籍・地域別の観光・レジャー目的かつ個別手配者の費目構成比と、都道府県別泊数に応じてJSON作成時に処理しています。</p><p>表示値は分析条件の集計方法と表示単位で切り替えます。1人当たりは旅行者1人あたりの支出、1日当たりは滞在日数（泊数+1、0泊は1日）を考慮した人日ベースの金額です。加重平均は公式推計に近い見方、加重中央値は典型的な旅行者像を把握する補助指標、5%トリム平均は外れ値の影響を抑えた参考値です。</p><p>表示区分は公式な標準誤差ではなく、ダッシュボード上の安定性目安です。詳しい理由はラベルにマウスを合わせると確認できます。</p>`;
 }
 
 function aggregateBy(level, opts={}){
@@ -697,7 +717,7 @@ function aggregateFor({periods, prefCodes, natCodes, group='all'}){
   }
   return Array.from(map.values()).map(finalizeAgg);
 }
-function emptyAgg(){ return {visit_sample:0,spend_sample:0,visitor_weighted_index:0,spend_weight_sum:0,spend_weight_sq_sum:0,nights_weighted:0,direct_spend_weighted:0,package_allocated_weighted:0,total_spend_weighted:0,total_spend_weighted_sq:0,component_weighted:{},metric_stats:{},top_contributions:[],top1_spend_share:0,top5_spend_share:0,top10_weight_share:0,pref_code:0,pref_name:'',nationality_code:0,nationality_name:''}; }
+function emptyAgg(){ return {visit_sample:0,spend_sample:0,visitor_weighted_index:0,spend_weight_sum:0,spend_weight_sq_sum:0,nights_weighted:0,direct_spend_weighted:0,package_allocated_weighted:0,total_spend_weighted:0,total_spend_weighted_sq:0,component_weighted:{},metric_stats:{},daily_metric_stats:{},top_contributions:[],top1_spend_share:0,top5_spend_share:0,top10_weight_share:0,pref_code:0,pref_name:'',nationality_code:0,nationality_name:''}; }
 function addRecordToAgg(a,r){
   const den = Number(r.spend_weight_sum || 0);
   a.visit_sample += Number(r.visit_sample || 0); a.spend_sample += Number(r.spend_sample || 0); a.visitor_weighted_index += Number(r.visitor_weighted_index || 0);
@@ -715,9 +735,18 @@ function addRecordToAgg(a,r){
   a.top5_spend_share = Math.max(a.top5_spend_share || 0, Number(r.top5_spend_share || 0));
   a.top10_weight_share = Math.max(a.top10_weight_share || 0, Number(r.top10_weight_share || 0));
   const stats = r.metric_stats || buildLegacyStats(r, den);
-  for(const [key, st] of Object.entries(stats)){
-    if(!a.metric_stats[key]) a.metric_stats[key] = {sum_w:0,sum_w2:0,sum_wx:0,sum_wx2:0};
-    a.metric_stats[key].sum_w += Number(st.sum_w || 0); a.metric_stats[key].sum_w2 += Number(st.sum_w2 || 0); a.metric_stats[key].sum_wx += Number(st.sum_wx || 0); a.metric_stats[key].sum_wx2 += Number(st.sum_wx2 || 0); mergeHistogram(a.metric_stats[key], st.histogram || []);
+  mergeStatsInto(a.metric_stats, stats);
+  const dailyStats = r.daily_metric_stats || buildLegacyDailyStats(r, den);
+  mergeStatsInto(a.daily_metric_stats, dailyStats);
+}
+function mergeStatsInto(target, stats){
+  for(const [key, st] of Object.entries(stats || {})){
+    if(!target[key]) target[key] = {sum_w:0,sum_w2:0,sum_wx:0,sum_wx2:0};
+    target[key].sum_w += Number(st.sum_w || 0);
+    target[key].sum_w2 += Number(st.sum_w2 || 0);
+    target[key].sum_wx += Number(st.sum_wx || 0);
+    target[key].sum_wx2 += Number(st.sum_wx2 || 0);
+    mergeHistogram(target[key], st.histogram || []);
   }
 }
 function buildLegacyStats(r, den){
@@ -729,11 +758,24 @@ function buildLegacyStats(r, den){
   }
   return out;
 }
+function buildLegacyDailyStats(r, den){
+  const out = {};
+  const days = estimatedStayDays(r);
+  for(const m of DEFAULT_METRICS){
+    const key = m.key; if(!(key.includes('unit_yen'))) continue;
+    const x = Number(r[key] || 0) / days;
+    const wd = den * days;
+    const w2 = Number(r.spend_weight_sq_sum || (r.spend_sample ? den*den/Math.max(1,r.spend_sample) : 0)) * days * days;
+    out[key] = {sum_w:wd,sum_w2:w2,sum_wx:wd*x,sum_wx2:wd*x*x};
+  }
+  return out;
+}
 function finalizeAgg(a){
   const den = a.spend_weight_sum; const out = {...a};
   out.direct_spend_unit_yen = den ? a.direct_spend_weighted/den : 0; out.package_allocated_unit_yen = den ? a.package_allocated_weighted/den : 0; out.total_spend_unit_yen = den ? a.total_spend_weighted/den : 0; out.avg_nights = den ? a.nights_weighted/den : 0;
   for(const [key] of COMPONENTS) out[`${key}_unit_yen`] = den ? (a.component_weighted[key]||0)/den : 0;
   finalizeMetricStats(out.metric_stats);
+  finalizeMetricStats(out.daily_metric_stats);
   out.n_eff = den && a.spend_weight_sq_sum ? (den*den)/a.spend_weight_sq_sum : 0;
   out.package_share = a.total_spend_weighted ? a.package_allocated_weighted / a.total_spend_weighted : 0;
   out.top1_spend_share = Math.max(a.top1_spend_share || 0, a.total_spend_weighted && a.top_contributions.length ? a.top_contributions[0] / a.total_spend_weighted : 0);
@@ -744,7 +786,7 @@ function finalizeAgg(a){
 }
 function metricRse(row, metricKey){
   const key = (metricKey && (metricKey.includes('unit_yen') || metricKey==='avg_nights')) ? metricKey : 'total_spend_unit_yen';
-  const s = row.metric_stats?.[key] || row.metric_stats?.total_spend_unit_yen;
+  const s = statForMetric(row, key) || statForMetric(row, 'total_spend_unit_yen');
   if(!s || !s.sum_w || !s.sum_wx) return null;
   const nEff = s.sum_w2 ? (s.sum_w*s.sum_w)/s.sum_w2 : row.n_eff;
   const mean = s.sum_wx/s.sum_w; if(Math.abs(mean) < 1e-9 || !nEff) return null;
@@ -787,21 +829,60 @@ function barMetric(value,max,key,detail=''){
 function getMetricValue(row,key,method=state.aggregationMethod){
   if(!row) return 0;
   if(!(key && (key.includes('unit_yen') || key==='avg_nights'))) return Number(row[key] || 0);
+  if(key === 'avg_nights') return Number(row[key] || 0);
+  const st = statForMetric(row, key);
+  if(method === 'median') return Number(st?.weighted_median ?? approximateQuantile(st?.histogram, .5, false) ?? fallbackMetricValue(row,key) ?? 0);
+  if(method === 'spender_median') return Number(st?.spender_weighted_median ?? approximateQuantile(st?.histogram, .5, true) ?? st?.weighted_median ?? fallbackMetricValue(row,key) ?? 0);
+  if(method === 'trimmed_mean') return Number(st?.trimmed_mean ?? approximateTrimmedMean(st?.histogram, .05, .95) ?? fallbackMetricValue(row,key) ?? 0);
+  return Number(st?.sum_w ? st.sum_wx / st.sum_w : fallbackMetricValue(row,key));
+}
+function statForMetric(row,key){
+  if(!row || !key) return null;
+  if(state.valueBasis === 'day' && key.includes('unit_yen')) return row.daily_metric_stats?.[key] || derivedDailyStat(row,key);
+  return row.metric_stats?.[key] || null;
+}
+function fallbackMetricValue(row,key){
+  const base = Number(row?.[key] || 0);
+  if(state.valueBasis === 'day' && key && key.includes('unit_yen')) return base / estimatedStayDays(row);
+  return base;
+}
+function estimatedStayDays(row){
+  const nights = Number(row?.avg_nights || 0);
+  return Math.max(1, nights + 1);
+}
+function derivedDailyStat(row,key){
+  if(!row || !key || !key.includes('unit_yen')) return null;
   const st = row.metric_stats?.[key];
-  if(method === 'median') return Number(st?.weighted_median ?? approximateQuantile(st?.histogram, .5, false) ?? row[key] ?? 0);
-  if(method === 'spender_median') return Number(st?.spender_weighted_median ?? approximateQuantile(st?.histogram, .5, true) ?? st?.weighted_median ?? row[key] ?? 0);
-  if(method === 'trimmed_mean') return Number(st?.trimmed_mean ?? approximateTrimmedMean(st?.histogram, .05, .95) ?? row[key] ?? 0);
-  return Number(row[key] || 0);
+  const days = estimatedStayDays(row);
+  if(!st) return null;
+  const div = v => Number(v || 0) / days;
+  const hist = Array.isArray(st.histogram) ? st.histogram.map(b=>({
+    min: div(b.min), max: b.max == null ? null : div(b.max), label:b.label, weight:Number(b.weight||0)*days, spender_weight:Number(b.spender_weight||0)*days
+  })) : [];
+  return {
+    sum_w: Number(st.sum_w||0)*days,
+    sum_w2: Number(st.sum_w2||0)*days*days,
+    sum_wx: Number(st.sum_wx||0),
+    sum_wx2: Number(st.sum_wx2||0)/days,
+    weighted_p25: div(st.weighted_p25),
+    weighted_median: div(st.weighted_median),
+    weighted_p75: div(st.weighted_p75),
+    spender_weighted_median: div(st.spender_weighted_median),
+    trimmed_mean: div(st.trimmed_mean),
+    histogram:hist
+  };
 }
 function metricSubText(row,key){
   if(!(key && (key.includes('unit_yen') || key==='avg_nights'))) return metricUnit(key);
-  const st = row.metric_stats?.[key];
-  const mean = Number(row[key] || 0);
+  if(key === 'avg_nights') return metricUnit(key);
+  const st = statForMetric(row,key);
+  const mean = Number(st?.sum_w ? st.sum_wx / st.sum_w : fallbackMetricValue(row,key));
   const med = Number(st?.weighted_median ?? approximateQuantile(st?.histogram, .5, false) ?? 0);
   const ratio = med > 0 ? mean / med : null;
   const methodLabel = aggregationMethodLabel();
-  if(state.aggregationMethod === 'mean') return med ? `加重中央値 ${formatMetric(med,key)}${ratio && ratio>=1.5 ? ` / 平均÷中央値 ${dec.format(ratio)}倍` : ''}` : metricUnit(key);
-  return `集計方法: ${methodLabel}${mean ? ` / 加重平均 ${formatMetric(mean,key)}` : ''}`;
+  const basis = state.valueBasis === 'day' ? '1日当たり' : '1人当たり';
+  if(state.aggregationMethod === 'mean') return med ? `${basis} / 加重中央値 ${formatMetric(med,key)}${ratio && ratio>=1.5 ? ` / 平均÷中央値 ${dec.format(ratio)}倍` : ''}` : `${basis} / ${metricUnit(key)}`;
+  return `${basis} / 集計方法: ${methodLabel}${mean ? ` / 加重平均 ${formatMetric(mean,key)}` : ''}`;
 }
 function aggregationMethodLabel(){ return (state.aggregationMethods || AGGREGATION_METHODS).find(m=>m.key===state.aggregationMethod)?.label || '加重平均'; }
 function mergeHistogram(stat, hist){
@@ -859,8 +940,8 @@ function approximateTrimmedMean(hist, lo=.05, hi=.95){
   return ww ? wx/ww : null;
 }
 function metricLabel(key){ return state.metrics.find(m=>m.key===key)?.label || key; }
-function metricUnit(key){ return state.metrics.find(m=>m.key===key)?.unit || ''; }
-function formatMetric(v,key){ const val=Number(v||0); if(key.includes('unit_yen')) return `${yen.format(val)}円`; if(key==='avg_nights') return `${dec.format(val)}泊`; if(key==='spend_sample') return `${yen.format(val)}件`; if(key==='visitor_weighted_index') return yen.format(val); return yen.format(val); }
+function metricUnit(key){ if(key && key.includes('unit_yen')) return state.valueBasis === 'day' ? '円/人日' : '円/人'; return state.metrics.find(m=>m.key===key)?.unit || ''; }
+function formatMetric(v,key){ const val=Number(v||0); if(key && key.includes('unit_yen')) return `${yen.format(val)}${state.valueBasis === 'day' ? '円/人日' : '円/人'}`; if(key==='avg_nights') return `${dec.format(val)}泊`; if(key==='spend_sample') return `${yen.format(val)}件`; if(key==='visitor_weighted_index') return yen.format(val); return yen.format(val); }
 function prefName(code){ return PREFECTURES.find(p=>p[0]===Number(code))?.[1] || `県${code}`; }
 function natName(code){ return NATIONALITIES[Number(code)] || `国籍${code}`; }
 function periodSort(a,b){ const pa=parsePeriod(a), pb=parsePeriod(b); return pa.y!==pb.y ? pa.y-pb.y : pa.q-pb.q; }
