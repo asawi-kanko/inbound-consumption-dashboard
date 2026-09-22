@@ -50,6 +50,22 @@ button { cursor: pointer; }
   background: rgba(255,255,255,.92); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 9px 26px rgba(24,46,69,.07); padding: 22px;
 }
 .filters { margin-top: 18px; }
+.filter-head-actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:flex-end; }
+.filter-body { overflow: visible; }
+.filters.is-collapsed .filter-body { display:none; }
+.filter-summary { display:flex; flex-wrap:wrap; gap:8px; margin: 4px 0 16px; }
+.filters.is-collapsed .filter-summary { margin-bottom: 0; }
+.summary-chip { display:inline-flex; align-items:center; gap:6px; max-width: 100%; padding:7px 10px; border:1px solid var(--line); border-radius:999px; background:#f8fbfd; color:#31506c; font-weight:900; font-size:12px; }
+.summary-chip b { color:var(--teal-dark); font-weight:900; }
+.summary-chip span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.label-line { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.label-line .label { margin:0; }
+.info-btn { width:24px; height:24px; border:0; border-radius:999px; display:inline-grid; place-items:center; color:#fff; background:var(--teal); font-weight:1000; box-shadow:0 4px 10px rgba(39,200,189,.25); }
+.info-btn:hover { transform: translateY(-1px); }
+.sortable-th { cursor:pointer; user-select:none; white-space:nowrap; }
+.sortable-th:hover { color: var(--teal-dark); background:#eefbfa; }
+.sort-mark { margin-left:6px; color:var(--teal-dark); font-size:11px; }
+
 .panel-head { display:flex; justify-content:space-between; gap:18px; align-items:flex-start; margin-bottom:18px; }
 .eyebrow { color: var(--teal-dark); font-size: 12px; line-height:1; letter-spacing:.08em; font-weight: 900; margin: 0 0 8px; text-transform: uppercase; }
 h2,h3 { margin:0; line-height:1.35; letter-spacing:-.02em; }
@@ -194,8 +210,13 @@ tr:last-child td { border-bottom:0; }
           <p class="eyebrow">Analysis filters</p>
           <h2>分析条件</h2>
         </div>
-        <button class="btn soft" type="button" id="clearFilters">選択項目をすべてクリア</button>
+        <div class="filter-head-actions">
+          <button class="btn soft" type="button" id="toggleFilters" aria-expanded="true">分析条件をたたむ</button>
+          <button class="btn soft" type="button" id="clearFilters">選択項目をすべてクリア</button>
+        </div>
       </div>
+      <div class="filter-summary" id="activeFilterSummary"></div>
+      <div class="filter-body" id="filterBody">
       <div class="filter-grid">
         <div class="control wide">
           <span class="label">調査期間</span>
@@ -206,7 +227,7 @@ tr:last-child td { border-bottom:0; }
           <div class="multi-select" id="metricSelect"></div>
         </div>
         <div class="control wide">
-          <span class="label">集計方法</span>
+          <div class="label-line"><span class="label">集計方法</span><button class="info-btn" type="button" id="methodInfo" aria-label="集計方法の説明">!</button></div>
           <select id="aggMethod" class="select-native"></select>
         </div>
         <div class="control wide">
@@ -233,6 +254,7 @@ tr:last-child td { border-bottom:0; }
           <div class="multi-select" id="natSelect"></div>
           <div class="nat-chips" id="natQuick"></div>
         </div>
+      </div>
       </div>
     </section>
 
@@ -311,6 +333,19 @@ tr:last-child td { border-bottom:0; }
       </div>
     </div>
   </div>
+
+  <div class="modal-backdrop" id="methodModal">
+    <div class="modal">
+      <h3>集計方法の説明</h3>
+      <p><strong>加重平均：</strong>ウェイトを反映した平均値です。市場全体の消費インパクトや公式推計に近い見方に向いています。</p>
+      <p><strong>加重中央値：</strong>ウェイトを反映した「真ん中」の値です。一部の高額支出者に引っ張られにくく、典型的な旅行者像を把握しやすくなります。</p>
+      <p><strong>支出者ベース加重中央値：</strong>その費目に実際に支出した人だけで見た加重中央値です。買物代など、0円の人が多い費目の典型値確認に使います。</p>
+      <p><strong>5%トリム平均：</strong>下位5%・上位5%を除いて平均を計算する参考値です。外れ値の影響を抑えた傾向確認に向いています。</p>
+      <div class="panel-actions" style="border:0;margin:16px 0 0;padding:0;justify-content:flex-end">
+        <button class="btn primary" id="closeMethodModal" type="button">閉じる</button>
+      </div>
+    </div>
+  </div>
   <script>
 const PREFECTURES = [
   [1,'北海道'],[2,'青森県'],[3,'岩手県'],[4,'宮城県'],[5,'秋田県'],[6,'山形県'],[7,'福島県'],[8,'茨城県'],[9,'栃木県'],[10,'群馬県'],[11,'埼玉県'],[12,'千葉県'],[13,'東京都'],[14,'神奈川県'],[15,'新潟県'],[16,'富山県'],[17,'石川県'],[18,'福井県'],[19,'山梨県'],[20,'長野県'],[21,'岐阜県'],[22,'静岡県'],[23,'愛知県'],[24,'三重県'],[25,'滋賀県'],[26,'京都府'],[27,'大阪府'],[28,'兵庫県'],[29,'奈良県'],[30,'和歌山県'],[31,'鳥取県'],[32,'島根県'],[33,'岡山県'],[34,'広島県'],[35,'山口県'],[36,'徳島県'],[37,'香川県'],[38,'愛媛県'],[39,'高知県'],[40,'福岡県'],[41,'佐賀県'],[42,'長崎県'],[43,'熊本県'],[44,'大分県'],[45,'宮崎県'],[46,'鹿児島県'],[47,'沖縄県']
@@ -376,6 +411,11 @@ const state = {
   selectedPrefs:[...DEFAULT_PREFS],
   selectedNats:[0],
   focusPref:17,
+  filtersCollapsed:false,
+  tableSorts:{
+    prefCompare:{key:null, dir:'desc'},
+    prefNat:{key:null, dir:'desc'}
+  },
 };
 
 init();
@@ -416,12 +456,29 @@ function applyLoadedData(manifest, periodData){
   state.selectedPrefs = [...DEFAULT_PREFS];
   state.selectedNats = [0];
   state.focusPref = 17;
+  state.filtersCollapsed = false;
+  state.tableSorts = {prefCompare:{key:null, dir:'desc'}, prefNat:{key:null, dir:'desc'}};
   $('#dataStatus').textContent = `${state.periods.length}期間読込済み`;
   $('#latestPeriod').textContent = `最新期間: ${state.periods.at(-1)?.label || '-'}`;
 }
-function setupAfterLoad(){ hydrateControls(); renderAll(); }
+function setupAfterLoad(){ hydrateControls(); updateFilterAccordion(); renderAll(); }
 function wireBaseEvents(){
   document.addEventListener('click', (e)=>{ if(!e.target.closest('.multi-select')) $$('.multi-select').forEach(el=>el.classList.remove('is-open')); });
+  document.addEventListener('click', e=>{
+    const th = e.target.closest('th[data-sort-key]');
+    if(!th) return;
+    const tableKey = th.dataset.tableKey;
+    const sortKey = th.dataset.sortKey;
+    if(!tableKey || !state.tableSorts[tableKey]) return;
+    const current = state.tableSorts[tableKey];
+    const defaultDir = sortKey === 'name' ? 'asc' : 'desc';
+    state.tableSorts[tableKey] = current.key === sortKey ? {key:sortKey, dir: current.dir === 'desc' ? 'asc' : 'desc'} : {key:sortKey, dir:defaultDir};
+    renderAll();
+  });
+  $('#toggleFilters')?.addEventListener('click', ()=>{ state.filtersCollapsed = !state.filtersCollapsed; updateFilterAccordion(); });
+  $('#methodInfo')?.addEventListener('click', ()=>$('#methodModal')?.classList.add('is-open'));
+  $('#closeMethodModal')?.addEventListener('click', ()=>$('#methodModal')?.classList.remove('is-open'));
+  $('#methodModal')?.addEventListener('click', e=>{ if(e.target.id === 'methodModal') $('#methodModal').classList.remove('is-open'); });
   $('#clearFilters').addEventListener('click', ()=>{
     state.selectedPeriods = state.periods.map(p=>p.id);
     state.selectedMetrics = ['total_spend_unit_yen'];
@@ -432,6 +489,7 @@ function wireBaseEvents(){
     state.selectedPrefs = [...DEFAULT_PREFS];
     state.selectedNats = [0];
     state.focusPref = 17;
+    state.tableSorts = {prefCompare:{key:null, dir:'desc'}, prefNat:{key:null, dir:'desc'}};
     hydrateControls(); renderAll();
   });
   $('#aggMethod').addEventListener('change', e=>{ state.aggregationMethod = e.target.value || 'mean'; renderAll(); });
@@ -464,6 +522,28 @@ async function loadFromChosenJsonFiles(fileList){
   applyLoadedData(manifest, periods);
 }
 
+function updateFilterAccordion(){
+  const filters = $('#filters');
+  const btn = $('#toggleFilters');
+  if(!filters || !btn) return;
+  filters.classList.toggle('is-collapsed', !!state.filtersCollapsed);
+  btn.textContent = state.filtersCollapsed ? '分析条件を開く' : '分析条件をたたむ';
+  btn.setAttribute('aria-expanded', String(!state.filtersCollapsed));
+}
+function renderActiveFilterSummary(){
+  const target = $('#activeFilterSummary');
+  if(!target) return;
+  const items = [
+    ['調査期間', periodSummary()],
+    ['表示指標', metricSummary()],
+    ['集計方法', aggregationMethodLabel()],
+    ['表示単位', state.valueBasis === 'day' ? '1日当たり' : '1人当たり'],
+    ['表示区分', stabilitySummary()],
+    ['都道府県', prefSummary()],
+    ['国籍・地域', natSummary()],
+  ];
+  target.innerHTML = items.map(([label,value])=>`<span class="summary-chip"><b>${escapeHtml(label)}</b><span>${escapeHtml(value)}</span></span>`).join('');
+}
 function hydrateControls(){ hydratePeriodSelect(); hydrateMetricSelect(); hydrateAggMethod(); updateValueBasis(); hydrateStabilitySelect(); hydratePrefSelect(); hydrateNatSelect(); hydrateFocusPref(); hydrateNatQuick(); }
 function hydratePeriodSelect(){
   createMultiSelect($('#periodSelect'), {
@@ -580,7 +660,7 @@ function updateStabilitySelect(){ syncMultiSelect($('#stabilitySelect'), state.s
 function updatePrefSelect(){ syncMultiSelect($('#prefSelect'), state.selectedPrefs, prefSummary()); }
 function updateNatSelect(){ syncMultiSelect($('#natSelect'), state.selectedNats, natSummary()); }
 
-function renderAll(){ if(!state.records.length) return; hydrateFocusPref(); renderKpis(); renderMainAnalysis(); renderMethodNote(); }
+function renderAll(){ renderActiveFilterSummary(); if(!state.records.length) return; hydrateFocusPref(); renderKpis(); renderMainAnalysis(); renderMethodNote(); }
 function renderKpis(){
   const rec = aggregateBy('all')[0] || emptyAgg();
   const metricCards = state.selectedMetrics.slice(0,4).map(key=>kpiCard(metricLabel(key), formatMetric(getMetricValue(rec,key), key), metricSubText(rec,key)));
@@ -589,9 +669,8 @@ function renderKpis(){
 }
 function kpiCard(label,value,sub){ return `<article class="panel kpi"><span class="label">${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(sub||'')}</small></article>`; }
 function renderMainAnalysis(){
-  const metric = state.selectedMetrics[0];
-  const prefRows = filterByStability(aggregateBy('pref').filter(r=>state.selectedPrefs.includes(r.pref_code))).sort((a,b)=>getMetricValue(b,metric)-getMetricValue(a,metric));
-  renderComparisonTable('#prefCompareTable', prefRows, 'pref');
+  const prefRows = filterByStability(aggregateBy('pref').filter(r=>state.selectedPrefs.includes(r.pref_code)));
+  renderComparisonTable('#prefCompareTable', prefRows, 'pref', 'prefCompare');
   renderPrefNationalityRanking();
   renderHeatmap();
   renderPrefNationalityComposition();
@@ -599,18 +678,48 @@ function renderMainAnalysis(){
   renderMarketQuadrants();
   renderTrend('#prefTrend','pref');
   renderTrend('#countryTrend','country');
-  renderReliability('#prefReliability', prefRows);
+  renderReliability('#prefReliability', sortRowsForTable(prefRows, 'prefCompare'));
 }
-function renderComparisonTable(selector, rows, kind){
+function renderComparisonTable(selector, rows, kind, tableKey, limit=null){
   const metrics = state.selectedMetrics;
-  const max = Math.max(1, ...rows.map(r=>Number(getMetricValue(r,metrics[0])||0)));
-  const head = `<thead><tr><th>順位</th><th>${kind==='pref'?'都道府県':'国・地域'}</th>${metrics.map(m=>`<th>${escapeHtml(metricLabel(m))}</th>`).join('')}<th>表示区分</th></tr></thead>`;
-  const body = rows.map((r,i)=>`<tr><td><span class="rank ${i<3?'top':''}">${i+1}</span></td><td><strong>${escapeHtml(kind==='pref'?r.pref_name:r.nationality_name)}</strong></td>${metrics.map((m,mi)=>`<td>${mi===0?barMetric(getMetricValue(r,m), max, m, metricSubText(r,m)):metricValueCell(r,m)}</td>`).join('')}<td>${reliabilityBadge(r)}</td></tr>`).join('');
+  const sorted = sortRowsForTable(rows, tableKey);
+  const visible = limit ? sorted.slice(0, limit) : sorted;
+  const max = Math.max(1, ...visible.map(r=>Number(getMetricValue(r,metrics[0])||0)));
+  const nameLabel = kind==='pref'?'都道府県':'国・地域';
+  const head = `<thead><tr><th>順位</th>${sortHeader(nameLabel,'name',tableKey)}${metrics.map(m=>sortHeader(metricLabel(m),m,tableKey)).join('')}${sortHeader('表示区分','stability',tableKey)}</tr></thead>`;
+  const body = visible.map((r,i)=>`<tr><td><span class="rank ${i<3?'top':''}">${i+1}</span></td><td><strong>${escapeHtml(kind==='pref'?r.pref_name:r.nationality_name)}</strong></td>${metrics.map((m,mi)=>`<td>${mi===0?barMetric(getMetricValue(r,m), max, m, metricSubText(r,m)):metricValueCell(r,m)}</td>`).join('')}<td>${reliabilityBadge(r)}</td></tr>`).join('');
   $(selector).innerHTML = head + `<tbody>${body || `<tr><td colspan="${metrics.length+3}" class="empty">表示できるデータがありません。</td></tr>`}</tbody>`;
 }
 function renderPrefNationalityRanking(){
-  const rows = filterByStability(aggregateBy('nat', {prefCodes:[state.focusPref], natCodes:selectedNatCodesForBreakdown()}).filter(r=>r.nationality_code!==0)).sort((a,b)=>getMetricValue(b,state.selectedMetrics[0])-getMetricValue(a,state.selectedMetrics[0])).slice(0,12);
-  renderComparisonTable('#prefNatRanking', rows, 'nat');
+  const rows = filterByStability(aggregateBy('nat', {prefCodes:[state.focusPref], natCodes:selectedNatCodesForBreakdown()}).filter(r=>r.nationality_code!==0));
+  renderComparisonTable('#prefNatRanking', rows, 'nat', 'prefNat', 12);
+}
+function effectiveSortKey(tableKey){
+  const sort = state.tableSorts?.[tableKey] || {key:null, dir:'desc'};
+  const key = sort.key || state.selectedMetrics[0];
+  if(key === 'name' || key === 'stability' || state.selectedMetrics.includes(key)) return key;
+  return state.selectedMetrics[0];
+}
+function sortHeader(label,key,tableKey){
+  const sort = state.tableSorts?.[tableKey] || {key:null, dir:'desc'};
+  const active = effectiveSortKey(tableKey) === key;
+  const mark = active ? `<span class="sort-mark">${sort.dir === 'asc' ? '▲' : '▼'}</span>` : '<span class="sort-mark">↕</span>';
+  return `<th class="sortable-th" data-table-key="${escapeHtml(tableKey)}" data-sort-key="${escapeHtml(key)}" title="クリックで並び替え">${escapeHtml(label)}${mark}</th>`;
+}
+function sortRowsForTable(rows, tableKey){
+  const sort = state.tableSorts?.[tableKey] || {key:null, dir:'desc'};
+  const key = effectiveSortKey(tableKey);
+  const dir = sort.dir === 'asc' ? 1 : -1;
+  return [...rows].sort((a,b)=>{
+    const av = sortValue(a,key), bv = sortValue(b,key);
+    if(typeof av === 'string' || typeof bv === 'string') return String(av).localeCompare(String(bv), 'ja') * dir;
+    return ((Number(av)||0) - (Number(bv)||0)) * dir;
+  });
+}
+function sortValue(row,key){
+  if(key === 'name') return row.pref_name || row.nationality_name || '';
+  if(key === 'stability') return ({stable:4,caution:3,reference:2,suppress:1})[stabilityCode(row)] || 0;
+  return getMetricValue(row,key);
 }
 function renderPrefNationalityComposition(){
   const rows = filterByStability(aggregateBy('nat', {prefCodes:[state.focusPref], natCodes:selectedNatCodesForBreakdown()}).filter(r=>r.nationality_code!==0)).sort((a,b)=>getMetricValue(b,'total_spend_unit_yen')-getMetricValue(a,'total_spend_unit_yen')).slice(0,10);
